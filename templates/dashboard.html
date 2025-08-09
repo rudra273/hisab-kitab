@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard • {{ username }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root { --bg:#0b1020; --panel:#111827; --panel2:#0f172a; --text:#e5e7eb; --muted:#9ca3af; --accent:#60a5fa; --good:#34d399; --warn:#fbbf24; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: var(--bg); color: var(--text); }
+    .container { max-width: 1120px; margin: 32px auto; padding: 0 20px; }
+    .card { background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02)); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); }
+    h1 { margin: 0 0 6px; font-size: 24px; letter-spacing: 0.2px; }
+    p { margin: 6px 0 14px; color: var(--muted); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+    .panel { background: var(--panel2); border:1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 16px; }
+    .muted { color: var(--muted); }
+    .kpi { display:flex; align-items: center; justify-content: space-between; }
+    .kpi .value { font-size: 28px; font-weight: 600; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    ul { margin: 8px 0 0; padding: 0 0 0 16px; }
+    footer { margin-top: 18px; color: var(--muted); font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>Dashboard</h1>
+      <p class="muted">Signed in as <strong>{{ username }}</strong></p>
+
+      <div class="grid" style="margin-top:10px;">
+        <div class="panel kpi">
+          <div>
+            <div class="muted">Total messages</div>
+            <div class="value">{{ total_messages }}</div>
+          </div>
+        </div>
+        <div class="panel kpi">
+          <div>
+            <div class="muted">Unique senders</div>
+            <div class="value">{{ unique_senders }}</div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3 style="margin:0 0 8px;">Top senders</h3>
+          {% if top_senders %}
+            <ul>
+              {% for s in top_senders %}
+                <li>{{ s.address }} — {{ s.count }}</li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <div class="muted">No data</div>
+          {% endif %}
+        </div>
+        <div class="panel">
+          <h3 style="margin:0 0 8px;">By message type</h3>
+          {% if types %}
+            <ul>
+              {% for t in types %}
+                <li>Type {{ t.message_type }} — {{ t.count }}</li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <div class="muted">No data</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:14px;">
+        <h3 style="margin:0 0 8px;">Messages per day (last 60 days)</h3>
+        {% if daily %}
+          <canvas id="dailyChart" height="160"></canvas>
+        {% else %}
+          <div class="muted">No data</div>
+        {% endif %}
+      </div>
+
+      <p style="margin-top:14px;">
+        <a href="/db">Open DB Browser →</a>
+      </p>
+
+      <footer>Rendered for {{ username }}</footer>
+    </div>
+  </div>
+
+  {% if daily %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script>
+    const labels = {{ daily | map(attribute='day') | list | tojson }};
+    const counts = {{ daily | map(attribute='count') | list | tojson }};
+    const ctx = document.getElementById('dailyChart');
+    new Chart(ctx, {
+      type: 'line',
+      data: { labels, datasets: [{ label: 'Messages', data: counts, borderColor: '#60a5fa', backgroundColor: 'rgba(96,165,250,0.2)', tension: 0.3, fill: true }] },
+      options: {
+        plugins: { legend: { labels: { color: '#e5e7eb' } } },
+        scales: { x: { ticks: { color: '#9ca3af' } }, y: { ticks: { color: '#9ca3af' } } }
+      }
+    });
+  </script>
+  {% endif %}
+</body>
+</html>

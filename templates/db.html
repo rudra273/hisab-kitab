@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SMS Database Browser</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root { --bg:#0b1020; --panel:#111827; --text:#e5e7eb; --muted:#9ca3af; --accent:#60a5fa; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: var(--bg); color: var(--text); }
+    .container { max-width: 1200px; margin: 36px auto; padding: 0 20px; }
+    h1 { margin: 0 0 12px; font-size: 22px; }
+    .card { background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02)); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 18px; }
+    form.controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 12px; }
+    input, select, button { width: 100%; background: #0f172a; color: var(--text); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 8px 10px; }
+    button { background: var(--accent); color:#081225; border: none; font-weight: 600; cursor: pointer; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.08); vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; font-size: 12px; }
+    td { font-size: 13px; }
+    .muted { color: var(--muted); }
+    .pagination { display: flex; gap: 8px; align-items: center; justify-content: space-between; margin-top: 12px; }
+    .badge { display:inline-block; padding:2px 8px; border-radius:999px; background: rgba(96,165,250,0.15); border: 1px solid rgba(96,165,250,0.25); color: var(--accent); font-size: 11px; }
+    .nowrap { white-space: nowrap; }
+    .body-col { max-width: 420px; overflow: hidden; text-overflow: ellipsis; }
+    .actions { display:flex; gap:8px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>SMS Database Browser</h1>
+    <div class="card">
+      <form class="controls" method="get">
+        <input name="q" value="{{ q }}" placeholder="Search address/body..." />
+        <input name="address" value="{{ address }}" placeholder="Filter address contains..." />
+        <select name="message_type">
+          <option value="" {% if not message_type %}selected{% endif %}>All types</option>
+          <option value="1" {% if message_type==1 %}selected{% endif %}>1</option>
+          <option value="2" {% if message_type==2 %}selected{% endif %}>2</option>
+          <option value="3" {% if message_type==3 %}selected{% endif %}>3</option>
+          <option value="4" {% if message_type==4 %}selected{% endif %}>4</option>
+        </select>
+        <input name="start" value="{{ start }}" type="date" />
+        <input name="end" value="{{ end }}" type="date" />
+        <select name="page_size">
+          <option value="25" {% if page_size==25 %}selected{% endif %}>25</option>
+          <option value="50" {% if page_size==50 %}selected{% endif %}>50</option>
+          <option value="100" {% if page_size==100 %}selected{% endif %}>100</option>
+        </select>
+        <button type="submit">Apply</button>
+      </form>
+
+      <div class="muted" id="summary">{{ total }} results • page {{ page }} of {{ pages }}</div>
+
+      <div style="overflow:auto;">
+        <table id="tbl">
+          <thead>
+            <tr>
+              <th class="nowrap">Created</th>
+              <th>User</th>
+              <th>SMS ID</th>
+              <th>Address</th>
+              <th>Body</th>
+              <th>Type</th>
+              <th class="nowrap">Date (ms)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in items %}
+              <tr>
+                <td class="nowrap">{{ r.created_at or '' }}</td>
+                <td>{{ r.user_name or '' }}</td>
+                <td>{{ r.sms_id or '' }}</td>
+                <td><span class="badge">{{ r.address or '' }}</span></td>
+                <td class="body-col" title="{{ r.body or '' }}">{{ (r.body or '')[:160] }}</td>
+                <td>{{ r.message_type or '' }}</td>
+                <td class="nowrap">{{ r.date_received or '' }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pagination">
+        <div class="muted">Showing {{ items|length }} of {{ total }}</div>
+        <div class="actions">
+          {% set base = request.url.replace_query_params(q=q, address=address, message_type=message_type, start=start, end=end, page_size=page_size) %}
+          {% if page>1 %}
+            <a href="{{ base.replace_query_params(page=page-1) }}"><button type="button">Prev</button></a>
+          {% else %}
+            <button type="button" disabled>Prev</button>
+          {% endif %}
+          <span class="muted">Page {{ page }} / {{ pages }}</span>
+          {% if page<pages %}
+            <a href="{{ base.replace_query_params(page=page+1) }}"><button type="button">Next</button></a>
+          {% else %}
+            <button type="button" disabled>Next</button>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  
+</body>
+</html>
