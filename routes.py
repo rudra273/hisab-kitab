@@ -247,7 +247,7 @@ def register_user(payload: UserCreate):
 
 
 @router.post("/sync", status_code=status.HTTP_202_ACCEPTED, summary="Sync SMS Messages")
-def sync_sms_messages(payload: SmsSyncRequest, auth_user: str = Depends(basic_auth)):
+def sync_sms_messages(payload: SmsSyncRequest):
     """
     Receives a list of SMS messages and inserts new ones into the database.
     It uses 'ON CONFLICT DO NOTHING' to efficiently ignore duplicates.
@@ -258,12 +258,8 @@ def sync_sms_messages(payload: SmsSyncRequest, auth_user: str = Depends(basic_au
         ON CONFLICT (sms_id, user_name) DO NOTHING;
     """
 
-    # Enforce ownership: payload.user_name must match the authenticated user
-    if payload.user_name != auth_user:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot sync for another user")
-
     data_to_insert = [
-        (auth_user, msg.id, msg.address, msg.body, msg.date, msg.type)
+        (payload.user_name, msg.id, msg.address, msg.body, msg.date, msg.type)
         for msg in payload.messages
     ]
 
