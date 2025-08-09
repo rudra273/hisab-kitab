@@ -1,3 +1,4 @@
+
 import os
 from typing import List
 from fastapi import FastAPI, HTTPException, status
@@ -5,6 +6,8 @@ from pydantic import BaseModel, Field
 import psycopg2
 from psycopg2.extras import execute_batch
 from dotenv import load_dotenv
+import datetime 
+
 
 # Load environment variables from .env file
 load_dotenv()
@@ -73,10 +76,24 @@ def setup_database():
     finally:
         conn.close()
 
+
 # Run database setup on application startup
 @app.on_event("startup")
 def on_startup():
     setup_database()
+
+# --- API Endpoint to setup database ---
+@app.post("/setup-db", summary="Setup Database", status_code=status.HTTP_200_OK)
+def setup_db_api():
+    """Endpoint to (re)create the database table if needed."""
+    try:
+        setup_database()
+        return {"message": "Database setup completed successfully."}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database setup failed: {e}"
+        )
 
 
 # --- API Endpoints ---
@@ -85,6 +102,8 @@ def on_startup():
 def read_root():
     """A simple endpoint to confirm the API is running."""
     return {"status": "ok", "message": "Welcome to the SMS Sync API"}
+
+
 
 
 @app.post("/sync", status_code=status.HTTP_202_ACCEPTED, summary="Sync SMS Messages")
@@ -135,8 +154,48 @@ def sync_sms_messages(payload: SmsSyncRequest):
         if conn:
             conn.close()
 
-# To run the app, save the code as main.py and execute:
 
+@app.get("/messages", summary="Get All SMS Messages")
+def get_all_messages():
+    """Fetches all SMS messages from the database and formats the timestamp."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            cur.execute("SELECT user_name, sms_id, address, body, date_received, message_type, created_at FROM sms_messages ORDER BY created_at DESC;")
+            rows = cur.fetchall()
+            messages = []
+            for row in rows:
+                # --- START OF FIX ---
+                timestamp_ms = row[4] # This is the big number, e.g., 1754742120556
+                
+                # Convert milliseconds to a datetime object
+                # Python's fromtimestamp uses seconds, so we divide by 1000
+                date_object = datetime.datetime.fromtimestamp(timestamp_ms / 1000)
+                
+                # Format the datetime object into a human-readable string
+                formatted_date = date_object.strftime('%Y-%m-%d %H:%M:%S')
+                # --- END OF FIX ---
+
+                messages.append({
+                    "user_name": row[0],
+                    "sms_id": row[1],
+                    "address": row[2],
+                    "body": row[3],
+                    "date_received": formatted_date,
+                    "message_type": row[5],
+                    "created_at": row[6].isoformat() if row[6] else None
+                })
+        return {"messages": messages, "count": len(messages)}
+    except Exception as e:
+        print(f"Error fetching messages: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while fetching messages: {e}"
+        )
+    finally:
+        if conn:
+            conn.close()
 
 if __name__ == "__main__":
     import uvicorn
