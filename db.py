@@ -45,6 +45,7 @@ def setup_database():
                     body TEXT,
                     date_received BIGINT,
                     message_type INTEGER,
+                    is_processed BOOLEAN DEFAULT FALSE,
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
                     UNIQUE (sms_id, user_name)
                 );
