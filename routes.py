@@ -8,6 +8,7 @@ from fastapi.templating import Jinja2Templates
 from db import get_db_connection, setup_database
 from schemas import SmsSyncRequest, UserCreate
 from auth import basic_auth
+from convert import convert_all_messages  
 
 router = APIRouter()
 logger = get_logger("sms_sync.api")
@@ -327,6 +328,124 @@ def get_all_messages(auth_user: str = Depends(basic_auth)):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An error occurred while fetching messages: {e}",
+        )
+    finally:
+        if conn:
+            conn.close()
+
+#  NEW CONVERT API ENDPOINT
+@router.post("/convert", summary="Convert SMS Messages to Transactions", status_code=status.HTTP_200_OK)
+def convert_sms_to_transactions(_: str = Depends(basic_auth)):
+    """
+    Admin API endpoint to convert all unprocessed SMS messages to transaction data.
+    This processes all users' data, not just the authenticated user's data.
+    """
+    logger.info("Convert API called - starting SMS to transaction conversion")
+    
+    try:
+        # Call the conversion function
+        result = convert_all_messages()
+        
+        if result["status"] == "success":
+            return {
+                "status": "success",
+                "message": result["message"],
+                "details": {
+                    "processed_count": result["processed_count"],
+                    "failed_count": result["failed_count"],
+                    "total_messages": result.get("total_messages", 0)
+                }
+            }
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=result["message"]
+            )
+            
+    except Exception as e:
+        logger.error(f"Convert API error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Conversion process failed: {str(e)}"
+        )
+
+# NEW TRANSACTIONS API ENDPOINT
+@router.get("/transactions", summary="Get All Transactions")
+def get_all_transactions(auth_user: str = Depends(basic_auth)):
+    """Fetch all transactions from the database for the authenticated user."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT user_name, sms_id, address, bank, amount, transaction_type, 
+                       merchant, created_at
+                FROM transactions 
+                WHERE user_name = %s 
+                ORDER BY created_at DESC;
+                """,
+                (auth_user,),
+            )
+            rows = cur.fetchall()
+            transactions = []
+            for row in rows:
+                transactions.append({
+                    "user_name": row[0],
+                    "sms_id": row[1],
+                    "address": row[2],
+                    "bank": row[3],
+                    "amount": float(row[4]) if row[4] else None,
+                    "transaction_type": row[5],
+                    "merchant": row[6],
+                    "created_at": row[7].isoformat() if row[7] else None,
+                })
+        return {"transactions": transactions, "count": len(transactions)}
+    except Exception as e:
+        logger.error(f"Error fetching transactions: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while fetching transactions: {e}",
+        )
+    finally:
+        if conn:
+            conn.close()
+
+# ADMIN ENDPOINT TO GET ALL TRANSACTIONS (ALL USERS)
+@router.get("/admin/transactions", summary="Get All Transactions (Admin)")
+def get_all_transactions_admin(_: str = Depends(basic_auth)):
+    """Admin endpoint to fetch all transactions from all users."""
+    conn = None
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT user_name, sms_id, address, bank, amount, transaction_type, 
+                       merchant, created_at
+                FROM transactions 
+                ORDER BY created_at DESC;
+                """
+            )
+            rows = cur.fetchall()
+            transactions = []
+            for row in rows:
+                transactions.append({
+                    "user_name": row[0],
+                    "sms_id": row[1],
+                    "address": row[2],
+                    "bank": row[3],
+                    "amount": float(row[4]) if row[4] else None,
+                    "transaction_type": row[5],
+                    "merchant": row[6],
+                    "created_at": row[7].isoformat() if row[7] else None,
+                })
+        return {"transactions": transactions, "count": len(transactions)}
+    except Exception as e:
+        logger.error(f"Error fetching all transactions: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while fetching transactions: {e}",
         )
     finally:
         if conn:
