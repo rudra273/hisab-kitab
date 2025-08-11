@@ -1,139 +1,323 @@
-#!/usr/bin/env python3
+# test_detailed.py
 """
-Test script for SMS to Transaction conversion.
-This script helps you test the conversion process before running it on all data.
+Enhanced test script that shows exactly what AI extracts vs rule-based extraction.
+Updated to work with LangChain LLM providers.
 """
 
 import os
 import sys
 from dotenv import load_dotenv
+import json
 
 # Add current directory to path for imports
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from convert import SMSToTransactionConverter, get_db_connection
+from convert import TestingSMSConverter, get_db_connection
 
-def test_single_conversion():
-    """Test the conversion of a single SMS message."""
-    print("Testing SMS to Transaction Conversion...")
+
+class EnhancedTestingSMSConverter(TestingSMSConverter):
+    """Enhanced testing converter with detailed provider tracking."""
     
-    try:
-        # Initialize converter
-        converter = SMSToTransactionConverter()
-        print("✓ Converter initialized successfully")
+    def __init__(self):
+        super().__init__()
+        self.primary_attempts = 0
+        self.secondary_attempts = 0
+        self.provider_used = None
+        self.primary_failed = False
+        self.secondary_failed = False
+    
+    def convert_sms_to_transaction_with_detailed_tracking(self, sms_body: str, address: str):
+        """Convert SMS with detailed tracking including LLM provider details."""
+        self.ai_was_called = False
+        self.ai_result = None
+        self.rule_based_result = None
+        self.provider_used = None
+        self.primary_attempts = 0
+        self.secondary_attempts = 0
+        self.primary_failed = False
+        self.secondary_failed = False
         
-        # Test cases based on your sample data
-        test_cases = [
-    {
-        "address": "AX-HDFCBK-S",
-        "body": "Sent Rs.36.00\nFrom HDFC Bank A/C *8206\nTo BMTC BUS KA57F2456\nOn 10/08/25\nRef 677927937758\nNot You?\nCall 18002586161/SMS BLOCK UPI to 7308080808"
-    },
-    {
-        "address": "VM-HDFCBK-S",
-        "body": "Sent Rs.260.00\nFrom HDFC Bank A/C *8206\nTo BADAL  MEHER\nOn 10/08/25\nRef 516059125345\nNot You?\nCall 18002586161/SMS BLOCK UPI to 7308080808"
-    },
-    {
-        "address": "VD-HDFCBN-P",
-        "body": "HDFC Bank:\nEnjoy freedom from high EMIs with a pre-approved Personal Loan at reduced rates. Check EMI: https://hdfcbk.io/HDFCBK/s/7dkLjLAB"
-    },
-    {
-        "address": "JK-AXISBK-S",
-        "body": "INR 1.00 credited\nA/c no. XX9624\n10-08-25, 00:01:25 IST\nUPI/P2A/839457076434/BADAL MEH/ICICI Ban - Axis Bank "
-    }
-]
-
-        
-        for i, test_case in enumerate(test_cases, 1):
-            print(f"\n--- Test Case {i} ---")
-            print(f"Address: {test_case['address']}")
-            print(f"Body: {test_case['body'][:100]}...")
+        try:
+            print(f"🔍 Starting conversion for address: {address}")
             
-            # Test individual extraction methods first
-            print("\nRule-based extraction:")
-            bank = converter.extract_bank_from_address(test_case['address'])
-            amount = converter.extract_amount(test_case['body'])
-            transaction_type = converter.extract_transaction_type(test_case['body'])
-            merchant = converter.extract_merchant(test_case['body'])
+            # First try rule-based extraction
+            bank = self.extract_bank_from_address(address)
+            amount = self.extract_amount(sms_body)
+            transaction_type = self.extract_transaction_type(sms_body)
+            merchant = self.extract_merchant(sms_body)
             
-            print(f"  Bank from address: {bank}")
-            print(f"  Amount from body: {amount}")
-            print(f"  Transaction type: {transaction_type}")
-            print(f"  Merchant: {merchant}")
+            # Store rule-based results
+            self.rule_based_result = {
+                'bank': bank,
+                'amount': amount,
+                'transaction_type': transaction_type,
+                'merchant': merchant
+            }
             
-            # Now test full conversion
-            print("\nFull conversion result:")
-            result = converter.convert_sms_to_transaction(
-                test_case['body'], 
-                test_case['address']
-            )
-            
-            for key, value in result.items():
+            print("\n📋 Rule-based extraction results:")
+            for key, value in self.rule_based_result.items():
                 status = "✓" if value is not None else "✗"
                 print(f"  {status} {key}: {value}")
             
-            # Check if conversion was successful
-            success_count = sum(1 for v in result.values() if v is not None)
-            print(f"  Success rate: {success_count}/4 fields extracted")
+            # Check if rule-based extraction got everything
+            rule_based_complete = all([bank, amount, transaction_type, merchant])
+            
+            if rule_based_complete:
+                print("\n✅ Rule-based extraction COMPLETE - AI call SKIPPED")
+                return self.rule_based_result
+            else:
+                # Show what's missing
+                missing_fields = []
+                if not bank: missing_fields.append("bank")
+                if not amount: missing_fields.append("amount")
+                if not transaction_type: missing_fields.append("transaction_type")
+                if not merchant: missing_fields.append("merchant")
                 
-    except Exception as e:
-        print(f"✗ Error during testing: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
-    
-    return True
+                print(f"\n❌ Rule-based extraction INCOMPLETE")
+                print(f"   Missing fields: {', '.join(missing_fields)}")
+                print("🤖 Making AI call to extract missing data...")
+                
+                # Call AI with enhanced tracking
+                self.ai_was_called = True
+                
+                prompt = f"""
+Extract financial transaction information from this SMS:
 
-def test_database_connection():
-    """Test database connection and check tables."""
-    print("\nTesting database connection...")
+Address: {address}
+Message: {sms_body}
+
+Return ONLY a JSON object with these fields:
+{{
+    "bank": "bank name (HDFC, AXIS, SBI, etc.)",
+    "amount": "numeric amount without currency symbols",
+    "transaction_type": "debited or credited",
+    "merchant": "recipient or merchant name"
+}}
+
+Rules:
+- Extract bank from address patterns (AX-HDFCBK-S means HDFC, VM-HDFCBK-S means HDFC)
+- Amount should be just the number (36.00 not Rs.36.00)
+- "Sent" means debited, "Received" means credited
+- Merchant is the "To" recipient
+- Use null for missing data
+- Return ONLY valid JSON, no other text
+
+Example: {{"bank": "HDFC", "amount": 36.00, "transaction_type": "debited", "merchant": "BMTC BUS KA57F2456"}}
+"""
+
+                # Track LLM provider attempts
+                ai_response = self._track_llm_attempts(prompt)
+                
+                if ai_response:
+                    self.ai_result = self.parse_ai_response(ai_response)
+                    
+                    print(f"\n🤖 AI extraction results (using {self.provider_used}):")
+                    for key, value in self.ai_result.items():
+                        status = "✓" if value is not None else "✗"
+                        print(f"  {status} {key}: {value}")
+                    
+                    # Show provider usage details
+                    self._show_provider_details()
+                    
+                    # Combine rule-based and AI results
+                    final_result = {
+                        'bank': bank or self.ai_result.get('bank'),
+                        'amount': amount or self.ai_result.get('amount'),
+                        'transaction_type': transaction_type or self.ai_result.get('transaction_type'),
+                        'merchant': merchant or self.ai_result.get('merchant')
+                    }
+                    
+                    print("\n🔧 Final combined results:")
+                    for key, value in final_result.items():
+                        rule_val = self.rule_based_result.get(key)
+                        ai_val = self.ai_result.get(key)
+                        
+                        if rule_val is not None:
+                            print(f"  📋 {key}: {value} (from rules)")
+                        elif ai_val is not None:
+                            print(f"  🤖 {key}: {value} (from {self.provider_used})")
+                        else:
+                            print(f"  ❌ {key}: {value} (not extracted)")
+                    
+                    return final_result
+                else:
+                    print("\n❌ All AI providers FAILED - using rule-based results only")
+                    self._show_provider_details()
+                    return self.rule_based_result
+                    
+        except Exception as e:
+            print(f"\n💥 Error during conversion: {e}")
+            return self._get_empty_transaction()
+    
+    def _track_llm_attempts(self, prompt: str):
+        """Track LLM attempts with detailed logging."""
+        # Override the LLM provider's generate_response to track attempts
+        original_try_llm = self.llm_provider._try_llm
+        
+        def tracked_try_llm(llm, provider_name, prompt_text):
+            if provider_name == self.llm_provider.primary_provider:
+                self.primary_attempts += 1
+                print(f"🔄 Trying PRIMARY ({provider_name}) - Attempt {self.primary_attempts}")
+            else:
+                self.secondary_attempts += 1
+                print(f"🔄 Trying SECONDARY ({provider_name}) - Attempt {self.secondary_attempts}")
+            
+            result = original_try_llm(llm, provider_name, prompt_text)
+            
+            if result:
+                self.provider_used = provider_name
+                print(f"✅ SUCCESS with {provider_name}")
+            else:
+                if provider_name == self.llm_provider.primary_provider:
+                    self.primary_failed = True
+                    print(f"❌ PRIMARY ({provider_name}) FAILED")
+                else:
+                    self.secondary_failed = True
+                    print(f"❌ SECONDARY ({provider_name}) FAILED")
+            
+            return result
+        
+        # Temporarily override the method
+        self.llm_provider._try_llm = tracked_try_llm
+        
+        try:
+            return self.llm_provider.generate_response(prompt)
+        finally:
+            # Restore original method
+            self.llm_provider._try_llm = original_try_llm
+    
+    def _show_provider_details(self):
+        """Show detailed provider usage information."""
+        print(f"\n📊 LLM Provider Usage Details:")
+        print(f"   🔹 Primary ({self.llm_provider.primary_provider}): {self.primary_attempts} attempts")
+        if self.primary_failed:
+            print(f"   🔴 Primary FAILED after {self.primary_attempts} attempts")
+        
+        print(f"   🔹 Secondary ({self.llm_provider.secondary_provider}): {self.secondary_attempts} attempts")
+        if self.secondary_failed:
+            print(f"   🔴 Secondary FAILED after {self.secondary_attempts} attempts")
+        
+        if self.provider_used:
+            print(f"   ✅ Final success with: {self.provider_used}")
+        else:
+            print(f"   ❌ Both providers failed")
+
+
+def test_conversion_with_enhanced_tracking():
+    """Test conversion with detailed AI usage and provider tracking."""
+    print("Testing SMS to Transaction Conversion with Enhanced LLM Provider Tracking")
+    print("=" * 80)
     
     try:
-        conn = get_db_connection()
-        print("✓ Database connection successful")
+        # Initialize enhanced testing converter
+        converter = EnhancedTestingSMSConverter()
+        print("✓ Enhanced testing converter initialized successfully")
+        print(f"✓ Primary LLM: {converter.llm_provider.primary_provider}")
+        print(f"✓ Secondary LLM: {converter.llm_provider.secondary_provider}")
         
-        with conn.cursor() as cur:
-            # Check if sms_messages table exists
-            cur.execute("""
-                SELECT COUNT(*) FROM information_schema.tables 
-                WHERE table_name = 'sms_messages'
-            """)
-            if cur.fetchone()[0] > 0:
-                print("✓ sms_messages table exists")
+        # Test cases
+        test_cases = [
+            {
+                "name": "Complete HDFC transaction (should skip AI)",
+                "address": "AX-HDFCBK-S",
+                "body": "Sent Rs.36.00\nFrom HDFC Bank A/C *8206\nTo BMTC BUS KA57F2456\nOn 10/08/25\nRef 677927937758\nNot You?\nCall 18002586161/SMS BLOCK UPI to 7308080808"
+            },
+            {
+                "name": "Another HDFC transaction (should skip AI)",
+                "address": "VM-HDFCBK-S",
+                "body": "Sent Rs.260.00\nFrom HDFC Bank A/C *8206\nTo BADAL  MEHER\nOn 10/08/25\nRef 516059125345\nNot You?\nCall 18002586161/SMS BLOCK UPI to 7308080808"
+            },
+            {
+                "name": "Promotional SMS (should use AI)",
+                "address": "VD-HDFCBN-P",
+                "body": "HDFC Bank:\nEnjoy freedom from high EMIs with a pre-approved Personal Loan at reduced rates. Check EMI: https://hdfcbk.io/HDFCBK/s/7dkLjLAB"
+            },
+            {
+                "name": "Credit transaction (should skip AI)",
+                "address": "JK-AXISBK-S",
+                "body": "INR 1.00 credited\nA/c no. XX9624\n10-08-25, 00:01:25 IST\nUPI/P2A/839457076434/BADAL MEH/ICICI Ban - Axis Bank "
+            },
+            {
+                "name": "Unknown format (should use AI with provider fallback)",
+                "address": "UNKNOWN-BANK",
+                "body": "Payment of 500 rupees made to Coffee Shop yesterday"
+            }
+        ]
+        
+        ai_calls_made = 0
+        ai_calls_skipped = 0
+        primary_used = 0
+        secondary_used = 0
+        both_failed = 0
+        
+        for i, test_case in enumerate(test_cases, 1):
+            print(f"\n{'='*80}")
+            print(f"TEST CASE {i}: {test_case['name']}")
+            print(f"{'='*80}")
+            print(f"Address: {test_case['address']}")
+            print(f"Message: {test_case['body'][:150]}...")
+            
+            # Run conversion with enhanced tracking
+            result = converter.convert_sms_to_transaction_with_detailed_tracking(
+                test_case['body'],
+                test_case['address']
+            )
+            
+            # Track AI and provider usage
+            if converter.ai_was_called:
+                ai_calls_made += 1
+                print(f"\n📊 RESULT: AI was called for this message")
                 
-                # Check for unprocessed messages
-                cur.execute("SELECT COUNT(*) FROM sms_messages WHERE is_processed = FALSE")
-                unprocessed_count = cur.fetchone()[0]
-                print(f"  Unprocessed messages: {unprocessed_count}")
+                if converter.provider_used == converter.llm_provider.primary_provider:
+                    primary_used += 1
+                elif converter.provider_used == converter.llm_provider.secondary_provider:
+                    secondary_used += 1
+                else:
+                    both_failed += 1
             else:
-                print("✗ sms_messages table not found")
-                
-            # Check if transactions table exists
-            cur.execute("""
-                SELECT COUNT(*) FROM information_schema.tables 
-                WHERE table_name = 'transactions'
-            """)
-            if cur.fetchone()[0] > 0:
-                print("✓ transactions table exists")
-                
-                # Check existing transactions
-                cur.execute("SELECT COUNT(*) FROM transactions")
-                transaction_count = cur.fetchone()[0]
-                print(f"  Existing transactions: {transaction_count}")
-            else:
-                print("✗ transactions table not found")
-                
-        conn.close()
+                ai_calls_skipped += 1
+                print(f"\n📊 RESULT: AI call was skipped (rule-based sufficient)")
+            
+            # Show final success rate
+            success_count = sum(1 for v in result.values() if v is not None)
+            print(f"📈 Final success rate: {success_count}/4 fields extracted")
+            print(f"🎯 Overall extraction quality: {'GOOD' if success_count >= 3 else 'POOR'}")
+        
+        # Enhanced Summary
+        print(f"\n{'='*80}")
+        print("ENHANCED CONVERSION SUMMARY")
+        print(f"{'='*80}")
+        print(f"Total test cases: {len(test_cases)}")
+        print(f"🤖 AI calls made: {ai_calls_made}")
+        print(f"📋 AI calls skipped: {ai_calls_skipped}")
+        print(f"💰 Cost efficiency: {(ai_calls_skipped/len(test_cases))*100:.1f}% calls avoided")
+        print(f"\n🔀 LLM Provider Usage:")
+        print(f"   🔹 Primary ({converter.llm_provider.primary_provider}) used: {primary_used} times")
+        print(f"   🔹 Secondary ({converter.llm_provider.secondary_provider}) used: {secondary_used} times")
+        print(f"   🔴 Both failed: {both_failed} times")
+        
+        if ai_calls_made > 0:
+            primary_success_rate = (primary_used / ai_calls_made) * 100
+            secondary_success_rate = (secondary_used / ai_calls_made) * 100
+            print(f"\n📊 Provider Success Rates:")
+            print(f"   Primary success rate: {primary_success_rate:.1f}%")
+            print(f"   Secondary success rate: {secondary_success_rate:.1f}%")
+            print(f"   Fallback effectiveness: {((primary_used + secondary_used) / ai_calls_made) * 100:.1f}%")
+        
         return True
         
     except Exception as e:
-        print(f"✗ Database connection failed: {e}")
+        print(f"❌ Error during testing: {e}")
+        import traceback
+        traceback.print_exc()
         return False
+
 
 def check_environment():
     """Check if all required environment variables are set."""
     print("Checking environment variables...")
     
-    required_vars = ["DB_URL", "GEMINI_APIKEY"]
+    required_vars = ["DB_URL", "GEMINI_APIKEY", "OPENAI_APIKEY"]
     all_set = True
     
     for var in required_vars:
@@ -145,29 +329,22 @@ def check_environment():
     
     return all_set
 
+
 if __name__ == "__main__":
-    print("SMS to Transaction Conversion Test")
-    print("=" * 50)
-    
     # Load environment variables
     load_dotenv()
     
-    # Run tests
-    env_ok = check_environment()
-    if not env_ok:
+    # Check environment
+    if not check_environment():
         print("\n❌ Environment variables not properly configured")
+        print("Required: DB_URL, GEMINI_APIKEY, OPENAI_API_KEY")
         sys.exit(1)
     
-    db_ok = test_database_connection()
-    if not db_ok:
-        print("\n❌ Database connection issues")
-        sys.exit(1)
+    # Run enhanced testing
+    success = test_conversion_with_enhanced_tracking()
     
-    conversion_ok = test_single_conversion()
-    if not conversion_ok:
-        print("\n❌ Conversion test failed")
+    if success:
+        print("\n✅ All enhanced tests completed successfully!")
+    else:
+        print("\n❌ Some tests failed!")
         sys.exit(1)
-    
-    print("\n✅ All tests passed! You can now run the full conversion process.")
-    print("\nTo convert all messages, call the /convert API endpoint or run:")
-    print("python -c 'from convert import convert_all_messages; print(convert_all_messages())'")

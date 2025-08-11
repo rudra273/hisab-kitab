@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
-from routes import router
+from routes import router  # Now imports from routes/__init__.py
 from db import setup_database
 from logging_config import setup_logging, get_logger
 
@@ -28,7 +28,7 @@ app.include_router(router)
 # Startup handled via FastAPI lifespan
 
 """
-Routes are defined in `routes.py` and mounted via `app.include_router(router)`.
+Routes are defined in `routes/` modules and mounted via `app.include_router(router)`.
 """
 
 if __name__ == "__main__":
@@ -36,4 +36,3 @@ if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
 
 
-# test

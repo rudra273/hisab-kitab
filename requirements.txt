@@ -1,15 +1,24 @@
+# Web Framework
 fastapi
 uvicorn[standard]
 pydantic
-psycopg2-binary
 python-dotenv
 jinja2
+
+# Database
+psycopg2-binary
+
+# Auth & Security
 passlib==1.7.4
 bcrypt==3.2.2
+
 # AI/ML Libraries
 google-generativeai>=0.3.0
-langchain>=0.0.350
-langchain-google-genai>=0.0.6
-langchain-community>=0.0.11
-# JSON and data parsing
-jsonschema>=4.17.0
+langchain
+langchain-google-genai
+langchain-openai
+langchain-core
+langchain-community
+
+# JSON and Data Parsing
+jsonschema
