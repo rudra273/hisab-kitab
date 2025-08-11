@@ -3,292 +3,581 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Transaction Dashboard</title>
+<title>Transaction Insights</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
+    * {
+        box-sizing: border-box;
+    }
+    
     body {
-        font-family: Arial, sans-serif;
-        background: #f5f5f5;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         margin: 0;
         padding: 0;
+        min-height: 100vh;
+        color: #1f2937;
     }
+    
     .container {
-        width: 95%;
-        margin: auto;
-        padding: 15px;
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 16px;
     }
-    h1 {
+    
+    /* Header */
+    .header {
         text-align: center;
-        margin-bottom: 12px;
+        margin-bottom: 32px;
+        color: white;
     }
-    /* Filter Bar */
-    .filters {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-        background: #ffffff;
-        padding: 12px;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        position: sticky;
-        top: 0;
-        z-index: 10;
-        transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.25s ease;
-        overflow: hidden;
+    
+    .header h1 {
+        font-size: clamp(24px, 5vw, 36px);
+        font-weight: 700;
+        margin: 0 0 8px 0;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-    .filters.collapsed { max-height: 0; padding-top: 0; padding-bottom: 0; opacity: 0; }
-    .filters .row { display: contents; }
-    .filters .field { display: flex; flex-direction: column; gap: 6px; }
-    .filters label {
-        font-size: 12px;
-        color: #555;
-        margin-bottom: 4px;
-        display: block;
+    
+    .header p {
+        opacity: 0.9;
+        font-size: 16px;
+        margin: 0;
     }
-    .filters input, .filters select {
-        width: 100%;
-        padding: 8px 10px;
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        background: #fff;
-        font-size: 14px;
-        height: 40px;
-    }
-    .chips {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-    }
-    .chip {
-        padding: 6px 10px;
-        background: #eef2ff;
-        border: 1px solid #c7d2fe;
-        color: #3730a3;
-        border-radius: 999px;
-        font-size: 12px;
-        cursor: pointer;
-        user-select: none;
-    }
-    .chip.active { background: #3730a3; color: #fff; border-color: #3730a3; }
+    
+    /* Toolbar */
     .toolbar {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin: 8px 0 12px;
+        margin-bottom: 24px;
+        gap: 12px;
+        flex-wrap: wrap;
     }
-    .btn { background: #111827; color: #fff; border: 0; padding: 8px 12px; border-radius: 10px; font-size: 14px; }
-    .btn.secondary { background: #e5e7eb; color: #111827; }
-    .btn.small { padding: 6px 10px; font-size: 13px; }
+    
+    .btn {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        color: #374151;
+        border: 0;
+        padding: 12px 20px;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    
+    .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px -6px rgba(0, 0, 0, 0.25);
+    }
+    
+    .btn.secondary {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    /* Filters Panel */
+    .filters {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        border-radius: 20px;
+        padding: 24px;
+        margin-bottom: 32px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        /* Ensure inner content doesn't visually overflow rounded corners */
+        overflow: hidden;
+    }
+    
+    .filters.collapsed {
+        max-height: 0;
+        padding: 0 24px;
+        opacity: 0;
+        margin-bottom: 0;
+        overflow: hidden;
+    }
+    
+    .filter-grid {
+        display: grid;
+        gap: 20px;
+        grid-template-columns: 1fr;
+        /* Allow grid items to shrink without causing overflow */
+        min-width: 0;
+    }
+    
+    @media (min-width: 640px) {
+        .filter-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    
+    @media (min-width: 1024px) {
+        .filter-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+    
+    .field {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        /* Prevent long content from forcing overflow */
+        min-width: 0;
+    }
+    
+    .field label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #374151;
+        margin: 0;
+    }
+    
+    .field input, .field select {
+        padding: 12px 16px;
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        background: white;
+        font-size: 14px;
+        transition: all 0.2s ease;
+        outline: none;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+    
+    .field input:focus, .field select:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .date-range {
+        display: flex;
+        gap: 8px;
+    }
+    
+    .date-range input {
+        flex: 1;
+    }
+    
+    /* Quick Filter Chips */
+    .quick-filters {
+        grid-column: 1 / -1;
+        margin-top: 8px;
+    }
+    
+    .chips {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        /* Allow horizontal scroll on very small screens instead of overflow */
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .chip {
+        padding: 8px 16px;
+        background: #f3f4f6;
+        border: 2px solid transparent;
+        color: #6b7280;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        user-select: none;
+    }
+    
+    .chip:hover {
+        background: #e5e7eb;
+        color: #374151;
+    }
+    
+    .chip.active {
+        background: #667eea;
+        color: white;
+        border-color: #667eea;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px -4px rgba(102, 126, 234, 0.4);
+    }
+    
     /* Summary Cards */
     .summary {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 15px;
-        margin-bottom: 20px;
+        display: grid;
+        gap: 20px;
+        margin-bottom: 32px;
+        grid-template-columns: 1fr;
     }
+    
+    @media (min-width: 640px) {
+        .summary { grid-template-columns: repeat(2, 1fr); }
+    }
+    
+    @media (min-width: 1024px) {
+        .summary { grid-template-columns: repeat(4, 1fr); }
+    }
+    
     .card {
-        background: white;
-        padding: 15px;
-        border-radius: 8px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        flex: 1 1 200px;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        padding: 24px;
+        border-radius: 20px;
         text-align: center;
+        transition: all 0.3s ease;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 8px 32px -12px rgba(0, 0, 0, 0.15);
     }
-    .muted { color: #6b7280; font-size: 12px; }
+    
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 40px -12px rgba(0, 0, 0, 0.25);
+    }
+    
+    .card-label {
+        font-size: 14px;
+        color: #6b7280;
+        font-weight: 500;
+        margin-bottom: 8px;
+    }
+    
+    .card-value {
+        font-size: clamp(20px, 4vw, 28px);
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0;
+    }
+    
+    .card-change {
+        font-size: 12px;
+        margin-top: 4px;
+        font-weight: 500;
+    }
+    
+    .positive { color: #10b981; }
+    .negative { color: #ef4444; }
+    
     /* Charts Section */
     .charts {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 20px;
-        margin-bottom: 20px;
+        display: grid;
+        gap: 24px;
+        margin-bottom: 32px;
+        grid-template-columns: 1fr;
     }
+    
+    @media (min-width: 1024px) {
+        .charts {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+    
     .chart-container {
-        background: white;
-        padding: 10px;
-        border-radius: 8px;
-        flex: 1 1 300px;
-        min-width: 250px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        padding: 24px;
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 8px 32px -12px rgba(0, 0, 0, 0.15);
+        transition: all 0.3s ease;
+        /* Prevent infinite growth by fixing height */
+        height: 360px;
+        box-sizing: border-box;
+        position: relative;
     }
-    /* Table Styles */
+    
+    .chart-container:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 40px -12px rgba(0, 0, 0, 0.25);
+    }
+    
+    .chart-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 16px;
+    }
+
+    /* Make canvas fill the fixed-height container */
+    .chart-container canvas {
+        width: 100% !important;
+        height: calc(100% - 24px) !important; /* account for title margin */
+        display: block;
+    }
+
+    /* Larger chart container variant */
+    .chart-container.chart-large {
+        height: 420px;
+    }
+    
+    .chart-large {
+        grid-column: 1 / -1;
+    }
+    
+    /* Table */
+    .table-container {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        border-radius: 20px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 8px 32px -12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .table-header {
+        padding: 20px 24px;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .table-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #1f2937;
+        margin: 0;
+    }
+    
     table {
         width: 100%;
-        background: white;
         border-collapse: collapse;
         font-size: 14px;
     }
+    
     table th, table td {
-        padding: 8px;
-        border: 1px solid #ddd;
+        padding: 16px 24px;
         text-align: left;
+        border-bottom: 1px solid #f3f4f6;
     }
+    
     table th {
-        background: #f0f0f0;
+        background: #f9fafb;
+        font-weight: 600;
+        color: #374151;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
     }
-    /* Responsive Table */
+    
+    table tr:hover {
+        background: #f9fafb;
+    }
+    
+    .amount {
+        font-weight: 600;
+        color: #059669;
+    }
+    
+    .type-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+        background: #e0e7ff;
+        color: #3730a3;
+    }
+    
+    /* Mobile Responsive Table */
     @media (max-width: 768px) {
-        table thead {
-            display: none;
-        }
-        table, table tbody, table tr, table td {
+        table, table thead, table tbody, table th, table td, table tr {
             display: block;
-            width: 100%;
         }
+        
+        table thead tr {
+            position: absolute;
+            top: -9999px;
+            left: -9999px;
+        }
+        
         table tr {
-            margin-bottom: 10px;
             background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            padding: 10px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
+        
         table td {
             border: none;
             position: relative;
-            padding-left: 50%;
+            padding: 8px 0;
             text-align: right;
         }
+        
         table td::before {
-            content: attr(data-label);
+            content: attr(data-label) ": ";
             position: absolute;
-            left: 10px;
+            left: 0;
             width: 45%;
-            font-weight: bold;
+            padding-right: 10px;
+            white-space: nowrap;
+            font-weight: 600;
+            color: #6b7280;
             text-align: left;
         }
-        .filters { grid-template-columns: 1fr; }
+        
+        .table-container {
+            padding: 0 16px 16px;
+        }
     }
-
-    @media (min-width: 768px) {
-        .filters { grid-template-columns: repeat(3, 1fr); }
+    
+    /* Loading States */
+    .loading {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 200px;
+        color: #6b7280;
     }
-    @media (min-width: 1024px) {
-        .filters { grid-template-columns: repeat(4, 1fr); }
+    
+    /* Empty States */
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6b7280;
+    }
+    
+    .empty-state h3 {
+        font-size: 18px;
+        margin-bottom: 8px;
+        color: #374151;
     }
 </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Transaction Dashboard</h1>
-
-    <div class="toolbar">
-        <button id="toggleFilters" class="btn">Hide Filters</button>
-        <button id="resetFilters" class="btn secondary">Reset Filters</button>
+    <div class="header">
+        <h1>Transaction Insights</h1>
+        <p>Monitor your spending patterns and financial activity</p>
     </div>
 
-    <!-- Filters -->
+    <div class="toolbar">
+        <button id="toggleFilters" class="btn">🔍 Hide Filters</button>
+        <button id="resetFilters" class="btn secondary">↻ Reset All</button>
+    </div>
+
+    <!-- Enhanced Filters -->
     <div id="filtersPanel" class="filters">
-        <div class="row">
+        <div class="filter-grid">
             <div class="field">
-                <label for="search">Search (Merchant/Bank)</label>
-                <input id="search" type="text" placeholder="Search..." />
+                <label for="search">🔍 Search</label>
+                <input id="search" type="text" placeholder="Search merchant, bank..." />
             </div>
             <div class="field">
-                <label for="type">Type</label>
+                <label for="type">📊 Transaction Type</label>
                 <select id="type">
-                    <option value="">All</option>
+                    <option value="">All Types</option>
                 </select>
             </div>
             <div class="field">
-                <label for="bank">Bank</label>
+                <label for="bank">🏦 Bank</label>
                 <select id="bank">
-                    <option value="">All</option>
+                    <option value="">All Banks</option>
                 </select>
             </div>
             <div class="field">
-                <label for="merchant">Merchant</label>
+                <label for="merchant">🏪 Merchant</label>
                 <select id="merchant">
-                    <option value="">All</option>
+                    <option value="">All Merchants</option>
                 </select>
             </div>
             <div class="field">
-                <label for="minAmt">Min Amount</label>
-                <input id="minAmt" type="number" inputmode="decimal" placeholder="0" />
+                <label for="minAmt">💰 Min Amount</label>
+                <input id="minAmt" type="number" inputmode="decimal" placeholder="₹ 0" />
             </div>
             <div class="field">
-                <label for="maxAmt">Max Amount</label>
-                <input id="maxAmt" type="number" inputmode="decimal" placeholder="" />
+                <label for="maxAmt">💰 Max Amount</label>
+                <input id="maxAmt" type="number" inputmode="decimal" placeholder="₹ No limit" />
             </div>
             <div class="field">
-                <label>Date Range</label>
-                <div style="display:flex; gap:8px;">
+                <label>📅 Date Range</label>
+                <div class="date-range">
                     <input id="startDate" type="date" />
                     <input id="endDate" type="date" />
                 </div>
             </div>
-            <div class="field">
-                <label>Quick</label>
+            <div class="field quick-filters">
+                <label>⚡ Quick Filters</label>
                 <div class="chips">
-                    <span class="chip" data-range="1">1D</span>
-                    <span class="chip" data-range="7">7D</span>
-                    <span class="chip" data-range="30">30D</span>
-                    <span class="chip" data-range="90">90D</span>
-                    <span class="chip" data-range="180">6M</span>
-                    <span class="chip" data-range="365">1Y</span>
-                    <span class="chip" data-range="all">ALL</span>
+                    <span class="chip" data-range="1">Today</span>
+                    <span class="chip" data-range="7">Week</span>
+                    <span class="chip" data-range="30">Month</span>
+                    <span class="chip" data-range="90">Quarter</span>
+                    <span class="chip" data-range="365">Year</span>
+                    <span class="chip" data-range="all">All Time</span>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Summary Cards -->
+    <!-- Enhanced Summary Cards -->
     <div class="summary">
         <div class="card">
-            <div class="muted">Total Spend</div>
-            <div style="font-size:22px;font-weight:600" id="totalSpend">-</div>
+            <div class="card-label">💸 Total Spend</div>
+            <div class="card-value" id="totalSpend">₹0</div>
+            <div class="card-change" id="spendChange"></div>
         </div>
         <div class="card">
-            <div class="muted">Top Merchant</div>
-            <div style="font-size:22px;font-weight:600" id="topMerchant">-</div>
+            <div class="card-label">🏆 Top Merchant</div>
+            <div class="card-value" id="topMerchant">-</div>
+            <div class="card-change" id="merchantChange"></div>
         </div>
         <div class="card">
-            <div class="muted">Transactions</div>
-            <div style="font-size:22px;font-weight:600" id="totalTx">-</div>
+            <div class="card-label">📈 Transactions</div>
+            <div class="card-value" id="totalTx">0</div>
+            <div class="card-change" id="txChange"></div>
+        </div>
+        <div class="card">
+            <div class="card-label">📊 Average</div>
+            <div class="card-value" id="avgSpend">₹0</div>
+            <div class="card-change" id="avgChange"></div>
         </div>
     </div>
 
-    <!-- Charts -->
+    <!-- Enhanced Charts -->
     <div class="charts">
         <div class="chart-container">
+            <div class="chart-title">💳 Spending by Bank</div>
             <canvas id="bankChart"></canvas>
         </div>
         <div class="chart-container">
+            <div class="chart-title">🏪 Top 10 Merchants</div>
             <canvas id="merchantChart"></canvas>
         </div>
-        <div class="chart-container">
+        <div class="chart-container chart-large">
+            <div class="chart-title">📅 Daily Spending Trend</div>
             <canvas id="dailyChart"></canvas>
         </div>
     </div>
 
-    <!-- Table -->
-    <table>
-        <thead>
-            <tr>
-                <th>User</th>
-                <th>Bank</th>
-                <th>Amount</th>
-                <th>Type</th>
-                <th>Merchant</th>
-                <th>Date</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for t in transactions %}
-            <tr>
-                <td data-label="User">{{ t.user_name }}</td>
-                <td data-label="Bank">{{ t.bank }}</td>
-                <td data-label="Amount">₹{{ t.amount }}</td>
-                <td data-label="Type">{{ t.transaction_type }}</td>
-                <td data-label="Merchant">{{ t.merchant }}</td>
-                <td data-label="Date">{{ t.date_received }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <!-- Enhanced Table -->
+    <div class="table-container">
+        <div class="table-header">
+            <h3 class="table-title">Recent Transactions</h3>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>👤 User</th>
+                    <th>🏦 Bank</th>
+                    <th>💰 Amount</th>
+                    <th>📊 Type</th>
+                    <th>🏪 Merchant</th>
+                    <th>📅 Date</th>
+                </tr>
+            </thead>
+            <tbody id="transactionTable">
+                <tr><td colspan="6" class="loading">Loading transactions...</td></tr>
+            </tbody>
+        </table>
+    </div>
 </div>
 
+<!-- Server-provided transactions JSON -->
+<script id="tx-data" type="application/json">{{ transactions | tojson | default([], true) }}</script>
+
 <script>
-    const transactions = {{ transactions | tojson }};
+    // Transactions provided by server (fallback to empty array)
+    const transactions = JSON.parse(document.getElementById('tx-data')?.textContent || '[]');
+
     const INR = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
 
     // Elements
@@ -302,7 +591,11 @@
     const startEl = el('startDate');
     const endEl = el('endDate');
 
-    // Populate filter selects (sorted by frequency desc, then ASC label)
+    // Enhanced color palettes
+    const bankColors = ["#667eea", "#764ba2", "#f093fb", "#f5576c", "#4facfe", "#00f2fe", "#43e97b", "#38f9d7"];
+    const merchantColors = ["#667eea", "#764ba2", "#f093fb", "#f5576c", "#4facfe", "#00f2fe", "#43e97b", "#38f9d7", "#ffecd2", "#fcb69f"];
+
+    // Populate filter selects
     function freqMap(list) {
         const map = new Map();
         list.forEach(v => { const k = v || 'Unknown'; map.set(k, (map.get(k)||0)+1); });
@@ -315,23 +608,24 @@
 
     // Date parsing
     function toDate(t) {
-        // Parse local time from "YYYY-MM-DD HH:MM:SS"
         if (!t.date_received) return null;
         const s = t.date_received.replace(' ', 'T');
-        // Avoid timezone shifts by constructing date parts
         const d = new Date(s);
         return isNaN(d.getTime()) ? null : d;
     }
 
-    // Debounce helper for fast, smooth filtering on mobile
+    // Debounce for smooth filtering
     function debounce(fn, ms) { let to; return (...args) => { clearTimeout(to); to = setTimeout(() => fn(...args), ms); }; }
 
     // Charts
     let bankChart, merchantChart, dailyChart;
+    
     function renderCharts(data) {
+        // Bank spending
         const byBank = {};
         const byMerchant = {};
         const byDay = {};
+        
         data.forEach(t => {
             const amt = Number(t.amount || 0);
             if (!isNaN(amt)) {
@@ -348,31 +642,107 @@
         const bankCtx = document.getElementById('bankChart');
         const merchantCtx = document.getElementById('merchantChart');
         const dailyCtx = document.getElementById('dailyChart');
+        
         if (bankChart) bankChart.destroy();
         if (merchantChart) merchantChart.destroy();
         if (dailyChart) dailyChart.destroy();
 
+        // Bank Chart - Doughnut
         bankChart = new Chart(bankCtx, {
-            type: 'pie',
+            type: 'doughnut',
             data: {
                 labels: Object.keys(byBank),
-                datasets: [{ data: Object.values(byBank), backgroundColor: ["#4ade80", "#60a5fa", "#facc15", "#f87171", "#a78bfa", "#34d399", "#fb7185"] }]
+                datasets: [{
+                    data: Object.values(byBank),
+                    backgroundColor: bankColors,
+                    borderWidth: 0,
+                    cutout: '60%'
+                }]
             },
-            options: { plugins: { legend: { position: 'bottom' } } }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => `${ctx.label}: ${INR.format(ctx.raw)}`
+                        }
+                    }
+                }
+            }
         });
 
-        const top5 = Object.entries(byMerchant).sort((a,b)=>b[1]-a[1]).slice(0,5);
+        // Merchant Chart - Horizontal Bar (Top 10)
+        const top10 = Object.entries(byMerchant).sort((a,b)=>b[1]-a[1]).slice(0,10);
         merchantChart = new Chart(merchantCtx, {
             type: 'bar',
-            data: { labels: top5.map(m=>m[0]), datasets: [{ data: top5.map(m=>m[1]), backgroundColor: '#60a5fa' }] },
-            options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+            data: { 
+                labels: top10.map(m=>m[0]), 
+                datasets: [{ 
+                    data: top10.map(m=>m[1]), 
+                    backgroundColor: merchantColors.slice(0, 10),
+                    borderRadius: 8,
+                    borderSkipped: false
+                }] 
+            },
+            options: { 
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: { 
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => `${INR.format(ctx.raw)}`
+                        }
+                    }
+                }, 
+                scales: { 
+                    x: { beginAtZero: true, grid: { display: false } },
+                    y: { grid: { display: false } }
+                }
+            }
         });
 
+        // Daily Chart - Area
         const dayLabels = Object.keys(byDay).sort();
+        const dayData = dayLabels.map(d=>byDay[d]);
+        
         dailyChart = new Chart(dailyCtx, {
             type: 'line',
-            data: { labels: dayLabels, datasets: [{ label: 'Spend', data: dayLabels.map(d=>byDay[d]), borderColor: '#34d399', backgroundColor: 'rgba(52,211,153,0.2)', tension: 0.3, fill: true }] },
-            options: { plugins: { legend: { display: false } } }
+            data: { 
+                labels: dayLabels.map(d => new Date(d).toLocaleDateString()), 
+                datasets: [{ 
+                    label: 'Daily Spend', 
+                    data: dayData, 
+                    borderColor: '#667eea', 
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)', 
+                    tension: 0.4, 
+                    fill: true,
+                    borderWidth: 3,
+                    pointBackgroundColor: '#667eea',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 6
+                }] 
+            },
+            options: { 
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { 
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => `${INR.format(ctx.raw)}`
+                        }
+                    }
+                },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } }
+                }
+            }
         });
     }
 
@@ -400,36 +770,63 @@
             if (start && (!d || d < start)) return false;
             if (end && (!d || d > end)) return false;
             if (q) {
-                const hay = `${t.merchant||''} ${t.bank||''} ${t.transaction_type||''} ${t.date_received||''}`.toLowerCase();
+                const hay = `${t.merchant||''} ${t.bank||''} ${t.transaction_type||''} ${t.user_name||''}`.toLowerCase();
                 if (!hay.includes(q)) return false;
             }
             return true;
         });
 
-        // Summary
+        // Enhanced Summary
         const totalSpend = data.reduce((sum, t) => sum + (isNaN(Number(t.amount))?0:Number(t.amount)), 0);
+        const avgSpend = data.length > 0 ? totalSpend / data.length : 0;
+        
         document.getElementById('totalSpend').textContent = formatINR(totalSpend);
-        document.getElementById('totalTx').textContent = data.length;
+        document.getElementById('totalTx').textContent = data.length.toLocaleString();
+        document.getElementById('avgSpend').textContent = formatINR(avgSpend);
+        
         const merchantSpend = {};
-        data.forEach(t => { if (t.merchant) merchantSpend[t.merchant] = (merchantSpend[t.merchant] || 0) + (isNaN(Number(t.amount))?0:Number(t.amount)); });
-        const top = Object.entries(merchantSpend).sort((a,b)=>b[1]-a[1])[0];
-        document.getElementById('topMerchant').textContent = top ? `${top[0]} • ${formatINR(top[1])}` : '-';
-
-        // Table
-        const tbody = document.querySelector('tbody');
-        tbody.innerHTML = '';
-        data.forEach(t => {
-            tbody.insertAdjacentHTML('beforeend', `
-                <tr>
-                    <td data-label="User">${t.user_name||''}</td>
-                    <td data-label="Bank">${t.bank||''}</td>
-                    <td data-label="Amount">${formatINR(isNaN(Number(t.amount))?0:Number(t.amount))}</td>
-                    <td data-label="Type">${t.transaction_type||''}</td>
-                    <td data-label="Merchant">${t.merchant||''}</td>
-                    <td data-label="Date">${t.date_received||''}</td>
-                </tr>
-            `);
+        data.forEach(t => { 
+            if (t.merchant) merchantSpend[t.merchant] = (merchantSpend[t.merchant] || 0) + (isNaN(Number(t.amount))?0:Number(t.amount)); 
         });
+        const top = Object.entries(merchantSpend).sort((a,b)=>b[1]-a[1])[0];
+        document.getElementById('topMerchant').textContent = top ? top[0] : 'None';
+
+        // Enhanced Table with better formatting
+        const tbody = document.getElementById('transactionTable');
+        if (data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><h3>No transactions found</h3><p>Try adjusting your filters</p></td></tr>';
+        } else {
+            tbody.innerHTML = '';
+            data.slice(0, 50).forEach(t => { // Show max 50 for performance
+                const date = toDate(t);
+                const formattedDate = date ? date.toLocaleDateString('en-IN', { 
+                    day: '2-digit', 
+                    month: 'short', 
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }) : t.date_received;
+                
+                tbody.insertAdjacentHTML('beforeend', `
+                    <tr>
+                        <td data-label="👤 User">${t.user_name||'-'}</td>
+                        <td data-label="🏦 Bank">${t.bank||'-'}</td>
+                        <td data-label="💰 Amount" class="amount">${formatINR(isNaN(Number(t.amount))?0:Number(t.amount))}</td>
+                        <td data-label="📊 Type"><span class="type-badge">${t.transaction_type||'-'}</span></td>
+                        <td data-label="🏪 Merchant">${t.merchant||'-'}</td>
+                        <td data-label="📅 Date">${formattedDate}</td>
+                    </tr>
+                `);
+            });
+            
+            if (data.length > 50) {
+                tbody.insertAdjacentHTML('beforeend', `
+                    <tr><td colspan="6" style="text-align:center; padding:20px; color:#6b7280; font-style:italic;">
+                        Showing first 50 of ${data.length} transactions
+                    </td></tr>
+                `);
+            }
+        }
 
         // Charts
         renderCharts(data);
@@ -475,19 +872,48 @@
     const filtersPanel = document.getElementById('filtersPanel');
     toggleBtn.addEventListener('click', () => {
         const collapsed = filtersPanel.classList.toggle('collapsed');
-        toggleBtn.textContent = collapsed ? 'Show Filters' : 'Hide Filters';
+        toggleBtn.textContent = collapsed ? '🔍 Show Filters' : '🔍 Hide Filters';
     });
 
     // Bind filter events
     [searchEl, typeEl, bankEl, merchantEl, minAmtEl, maxAmtEl, startEl, endEl].forEach(elm => {
-        elm.addEventListener('input', () => { if (elm===startEl||elm===endEl) { document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active')); } applyFilters(); });
-        elm.addEventListener('change', () => { if (elm===startEl||elm===endEl) { document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active')); } applyFilters(); });
+        elm.addEventListener('input', () => { 
+            if (elm===startEl||elm===endEl) { 
+                document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active')); 
+            } 
+            applyFilters(); 
+        });
+        elm.addEventListener('change', () => { 
+            if (elm===startEl||elm===endEl) { 
+                document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active')); 
+            } 
+            applyFilters(); 
+        });
     });
 
-    // Initial render
-    // Default to 30D
-    const defaultChip = Array.from(document.querySelectorAll('.chip')).find(c=>c.dataset.range==='30');
-    if (defaultChip) { defaultChip.click(); } else { applyFilters(); }
+    // Initialize with Month view by default
+    document.addEventListener('DOMContentLoaded', () => {
+        const monthChip = Array.from(document.querySelectorAll('.chip')).find(c=>c.dataset.range==='30');
+        if (monthChip) { 
+            monthChip.click(); 
+        } else { 
+            applyFilters(); 
+        }
+    });
+
+    // Add some smooth animations for mobile interactions
+    if ('ontouchstart' in window) {
+        document.querySelectorAll('.card, .chart-container, .btn').forEach(el => {
+            el.addEventListener('touchstart', function() {
+                this.style.transform = 'scale(0.98)';
+            });
+            el.addEventListener('touchend', function() {
+                setTimeout(() => {
+                    this.style.transform = '';
+                }, 150);
+            });
+        });
+    }
 </script>
 
 </body>
