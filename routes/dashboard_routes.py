@@ -29,66 +29,46 @@ def read_root(request: Request):
 
 @dash_router.get("/dashboard", summary="User Dashboard")
 def user_dashboard(request: Request, auth_user: str = Depends(basic_auth)):
-    logger.debug("Dashboard requested - computing aggregates")
+    logger.debug("Dashboard requested - rendering transactions dashboard")
     conn = None
     try:
         conn = get_db_connection()
         with conn.cursor() as cur:
-            cur.execute("SELECT COUNT(*) FROM sms_messages WHERE user_name = %s;", (auth_user,))
-            total_messages = cur.fetchone()[0]
-            cur.execute("SELECT COUNT(DISTINCT address) FROM sms_messages WHERE user_name = %s;", (auth_user,))
-            unique_senders = cur.fetchone()[0]
             cur.execute(
                 """
-                SELECT to_char(to_timestamp(date_received/1000)::date, 'YYYY-MM-DD') AS day,
-                       COUNT(*)
-                FROM sms_messages
-                WHERE user_name = %s
-                  AND to_timestamp(date_received/1000) >= NOW() - INTERVAL '60 days'
-                GROUP BY 1
-                ORDER BY 1;
+                SELECT user_name, bank, amount, transaction_type, merchant, date_received
+                FROM transactions
+                WHERE user_name = %s AND transaction_type NOT IN ('null', 'other')
+                ORDER BY date_received DESC;
                 """,
                 (auth_user,),
             )
-            daily_rows = cur.fetchall()
-            daily = [{"day": r[0], "count": r[1]} for r in daily_rows]
-            cur.execute(
-                """
-                SELECT address, COUNT(*) AS cnt
-                FROM sms_messages
-                WHERE user_name = %s
-                GROUP BY address
-                ORDER BY cnt DESC
-                LIMIT 5;
-                """,
-                (auth_user,),
+            rows = cur.fetchall()
+        transactions = []
+        for r in rows:
+            # r[5] is date_received in milliseconds
+            try:
+                date_str = datetime.datetime.fromtimestamp(r[5] / 1000).strftime("%Y-%m-%d %H:%M:%S") if r[5] else None
+            except Exception:
+                date_str = None
+            transactions.append(
+                {
+                    "user_name": r[0],
+                    "bank": r[1],
+                    "amount": float(r[2]) if r[2] is not None else None,
+                    "transaction_type": r[3],
+                    "merchant": r[4],
+                    "date_received": date_str,
+                }
             )
-            ts_rows = cur.fetchall()
-            top_senders = [{"address": r[0] or "(unknown)", "count": r[1]} for r in ts_rows]
-            cur.execute(
-                """
-                SELECT message_type, COUNT(*)
-                FROM sms_messages
-                WHERE user_name = %s
-                GROUP BY message_type
-                ORDER BY COUNT(*) DESC;
-                """,
-                (auth_user,),
-            )
-            type_rows = cur.fetchall()
-            types = [{"message_type": r[0] if r[0] is not None else -1, "count": r[1]} for r in type_rows]
         context = {
             "request": request,
-            "total_messages": total_messages,
-            "unique_senders": unique_senders,
-            "daily": daily,
-            "top_senders": top_senders,
-            "types": types,
+            "transactions": transactions,
             "username": auth_user,
         }
         return templates.TemplateResponse("dashboard.html", context)
     except Exception as e:
-        logger.exception("Error building dashboard")
+        logger.exception("Error building transactions dashboard")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error building dashboard: {e}")
     finally:
         if conn:

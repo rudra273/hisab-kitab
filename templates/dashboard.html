@@ -1,108 +1,494 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Dashboard • {{ username }}</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-  <style>
-    :root { --bg:#0b1020; --panel:#111827; --panel2:#0f172a; --text:#e5e7eb; --muted:#9ca3af; --accent:#60a5fa; --good:#34d399; --warn:#fbbf24; }
-    * { box-sizing: border-box; }
-    body { margin:0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: var(--bg); color: var(--text); }
-    .container { max-width: 1120px; margin: 32px auto; padding: 0 20px; }
-    .card { background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02)); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); }
-    h1 { margin: 0 0 6px; font-size: 24px; letter-spacing: 0.2px; }
-    p { margin: 6px 0 14px; color: var(--muted); }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
-    .panel { background: var(--panel2); border:1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 16px; }
-    .muted { color: var(--muted); }
-    .kpi { display:flex; align-items: center; justify-content: space-between; }
-    .kpi .value { font-size: 28px; font-weight: 600; }
-    a { color: var(--accent); text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    ul { margin: 8px 0 0; padding: 0 0 0 16px; }
-    footer { margin-top: 18px; color: var(--muted); font-size: 12px; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transaction Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #f5f5f5;
+        margin: 0;
+        padding: 0;
+    }
+    .container {
+        width: 95%;
+        margin: auto;
+        padding: 15px;
+    }
+    h1 {
+        text-align: center;
+        margin-bottom: 12px;
+    }
+    /* Filter Bar */
+    .filters {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        background: #ffffff;
+        padding: 12px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.25s ease;
+        overflow: hidden;
+    }
+    .filters.collapsed { max-height: 0; padding-top: 0; padding-bottom: 0; opacity: 0; }
+    .filters .row { display: contents; }
+    .filters .field { display: flex; flex-direction: column; gap: 6px; }
+    .filters label {
+        font-size: 12px;
+        color: #555;
+        margin-bottom: 4px;
+        display: block;
+    }
+    .filters input, .filters select {
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        background: #fff;
+        font-size: 14px;
+        height: 40px;
+    }
+    .chips {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    .chip {
+        padding: 6px 10px;
+        background: #eef2ff;
+        border: 1px solid #c7d2fe;
+        color: #3730a3;
+        border-radius: 999px;
+        font-size: 12px;
+        cursor: pointer;
+        user-select: none;
+    }
+    .chip.active { background: #3730a3; color: #fff; border-color: #3730a3; }
+    .toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin: 8px 0 12px;
+    }
+    .btn { background: #111827; color: #fff; border: 0; padding: 8px 12px; border-radius: 10px; font-size: 14px; }
+    .btn.secondary { background: #e5e7eb; color: #111827; }
+    .btn.small { padding: 6px 10px; font-size: 13px; }
+    /* Summary Cards */
+    .summary {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    .card {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        flex: 1 1 200px;
+        text-align: center;
+    }
+    .muted { color: #6b7280; font-size: 12px; }
+    /* Charts Section */
+    .charts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+    .chart-container {
+        background: white;
+        padding: 10px;
+        border-radius: 8px;
+        flex: 1 1 300px;
+        min-width: 250px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    /* Table Styles */
+    table {
+        width: 100%;
+        background: white;
+        border-collapse: collapse;
+        font-size: 14px;
+    }
+    table th, table td {
+        padding: 8px;
+        border: 1px solid #ddd;
+        text-align: left;
+    }
+    table th {
+        background: #f0f0f0;
+    }
+    /* Responsive Table */
+    @media (max-width: 768px) {
+        table thead {
+            display: none;
+        }
+        table, table tbody, table tr, table td {
+            display: block;
+            width: 100%;
+        }
+        table tr {
+            margin-bottom: 10px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            padding: 10px;
+        }
+        table td {
+            border: none;
+            position: relative;
+            padding-left: 50%;
+            text-align: right;
+        }
+        table td::before {
+            content: attr(data-label);
+            position: absolute;
+            left: 10px;
+            width: 45%;
+            font-weight: bold;
+            text-align: left;
+        }
+        .filters { grid-template-columns: 1fr; }
+    }
+
+    @media (min-width: 768px) {
+        .filters { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (min-width: 1024px) {
+        .filters { grid-template-columns: repeat(4, 1fr); }
+    }
+</style>
 </head>
 <body>
-  <div class="container">
-    <div class="card">
-      <h1>Dashboard</h1>
-      <p class="muted">Signed in as <strong>{{ username }}</strong></p>
 
-      <div class="grid" style="margin-top:10px;">
-        <div class="panel kpi">
-          <div>
-            <div class="muted">Total messages</div>
-            <div class="value">{{ total_messages }}</div>
-          </div>
-        </div>
-        <div class="panel kpi">
-          <div>
-            <div class="muted">Unique senders</div>
-            <div class="value">{{ unique_senders }}</div>
-          </div>
-        </div>
-        <div class="panel">
-          <h3 style="margin:0 0 8px;">Top senders</h3>
-          {% if top_senders %}
-            <ul>
-              {% for s in top_senders %}
-                <li>{{ s.address }} — {{ s.count }}</li>
-              {% endfor %}
-            </ul>
-          {% else %}
-            <div class="muted">No data</div>
-          {% endif %}
-        </div>
-        <div class="panel">
-          <h3 style="margin:0 0 8px;">By message type</h3>
-          {% if types %}
-            <ul>
-              {% for t in types %}
-                <li>Type {{ t.message_type }} — {{ t.count }}</li>
-              {% endfor %}
-            </ul>
-          {% else %}
-            <div class="muted">No data</div>
-          {% endif %}
-        </div>
-      </div>
+<div class="container">
+    <h1>Transaction Dashboard</h1>
 
-      <div class="panel" style="margin-top:14px;">
-        <h3 style="margin:0 0 8px;">Messages per day (last 60 days)</h3>
-        {% if daily %}
-          <canvas id="dailyChart" height="160"></canvas>
-        {% else %}
-          <div class="muted">No data</div>
-        {% endif %}
-      </div>
-
-      <p style="margin-top:14px;">
-        <a href="/db">Open DB Browser →</a>
-      </p>
-
-      <footer>Rendered for {{ username }}</footer>
+    <div class="toolbar">
+        <button id="toggleFilters" class="btn">Hide Filters</button>
+        <button id="resetFilters" class="btn secondary">Reset Filters</button>
     </div>
-  </div>
 
-  {% if daily %}
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script>
-    const labels = {{ daily | map(attribute='day') | list | tojson }};
-    const counts = {{ daily | map(attribute='count') | list | tojson }};
-    const ctx = document.getElementById('dailyChart');
-    new Chart(ctx, {
-      type: 'line',
-      data: { labels, datasets: [{ label: 'Messages', data: counts, borderColor: '#60a5fa', backgroundColor: 'rgba(96,165,250,0.2)', tension: 0.3, fill: true }] },
-      options: {
-        plugins: { legend: { labels: { color: '#e5e7eb' } } },
-        scales: { x: { ticks: { color: '#9ca3af' } }, y: { ticks: { color: '#9ca3af' } } }
-      }
+    <!-- Filters -->
+    <div id="filtersPanel" class="filters">
+        <div class="row">
+            <div class="field">
+                <label for="search">Search (Merchant/Bank)</label>
+                <input id="search" type="text" placeholder="Search..." />
+            </div>
+            <div class="field">
+                <label for="type">Type</label>
+                <select id="type">
+                    <option value="">All</option>
+                </select>
+            </div>
+            <div class="field">
+                <label for="bank">Bank</label>
+                <select id="bank">
+                    <option value="">All</option>
+                </select>
+            </div>
+            <div class="field">
+                <label for="merchant">Merchant</label>
+                <select id="merchant">
+                    <option value="">All</option>
+                </select>
+            </div>
+            <div class="field">
+                <label for="minAmt">Min Amount</label>
+                <input id="minAmt" type="number" inputmode="decimal" placeholder="0" />
+            </div>
+            <div class="field">
+                <label for="maxAmt">Max Amount</label>
+                <input id="maxAmt" type="number" inputmode="decimal" placeholder="" />
+            </div>
+            <div class="field">
+                <label>Date Range</label>
+                <div style="display:flex; gap:8px;">
+                    <input id="startDate" type="date" />
+                    <input id="endDate" type="date" />
+                </div>
+            </div>
+            <div class="field">
+                <label>Quick</label>
+                <div class="chips">
+                    <span class="chip" data-range="1">1D</span>
+                    <span class="chip" data-range="7">7D</span>
+                    <span class="chip" data-range="30">30D</span>
+                    <span class="chip" data-range="90">90D</span>
+                    <span class="chip" data-range="180">6M</span>
+                    <span class="chip" data-range="365">1Y</span>
+                    <span class="chip" data-range="all">ALL</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary">
+        <div class="card">
+            <div class="muted">Total Spend</div>
+            <div style="font-size:22px;font-weight:600" id="totalSpend">-</div>
+        </div>
+        <div class="card">
+            <div class="muted">Top Merchant</div>
+            <div style="font-size:22px;font-weight:600" id="topMerchant">-</div>
+        </div>
+        <div class="card">
+            <div class="muted">Transactions</div>
+            <div style="font-size:22px;font-weight:600" id="totalTx">-</div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts">
+        <div class="chart-container">
+            <canvas id="bankChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <canvas id="merchantChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <canvas id="dailyChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <table>
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>Bank</th>
+                <th>Amount</th>
+                <th>Type</th>
+                <th>Merchant</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in transactions %}
+            <tr>
+                <td data-label="User">{{ t.user_name }}</td>
+                <td data-label="Bank">{{ t.bank }}</td>
+                <td data-label="Amount">₹{{ t.amount }}</td>
+                <td data-label="Type">{{ t.transaction_type }}</td>
+                <td data-label="Merchant">{{ t.merchant }}</td>
+                <td data-label="Date">{{ t.date_received }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+    const transactions = {{ transactions | tojson }};
+    const INR = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
+
+    // Elements
+    const el = id => document.getElementById(id);
+    const searchEl = el('search');
+    const typeEl = el('type');
+    const bankEl = el('bank');
+    const merchantEl = el('merchant');
+    const minAmtEl = el('minAmt');
+    const maxAmtEl = el('maxAmt');
+    const startEl = el('startDate');
+    const endEl = el('endDate');
+
+    // Populate filter selects (sorted by frequency desc, then ASC label)
+    function freqMap(list) {
+        const map = new Map();
+        list.forEach(v => { const k = v || 'Unknown'; map.set(k, (map.get(k)||0)+1); });
+        return Array.from(map.entries()).sort((a,b)=> b[1]-a[1] || a[0].localeCompare(b[0]));
+    }
+    function populateSelect(el, entries) { entries.forEach(([v]) => el.insertAdjacentHTML('beforeend', `<option value="${v==='Unknown'?'':v}">${v}</option>`)); }
+    populateSelect(typeEl, freqMap(transactions.map(t => t.transaction_type)));
+    populateSelect(bankEl, freqMap(transactions.map(t => t.bank)));
+    populateSelect(merchantEl, freqMap(transactions.map(t => t.merchant)));
+
+    // Date parsing
+    function toDate(t) {
+        // Parse local time from "YYYY-MM-DD HH:MM:SS"
+        if (!t.date_received) return null;
+        const s = t.date_received.replace(' ', 'T');
+        // Avoid timezone shifts by constructing date parts
+        const d = new Date(s);
+        return isNaN(d.getTime()) ? null : d;
+    }
+
+    // Debounce helper for fast, smooth filtering on mobile
+    function debounce(fn, ms) { let to; return (...args) => { clearTimeout(to); to = setTimeout(() => fn(...args), ms); }; }
+
+    // Charts
+    let bankChart, merchantChart, dailyChart;
+    function renderCharts(data) {
+        const byBank = {};
+        const byMerchant = {};
+        const byDay = {};
+        data.forEach(t => {
+            const amt = Number(t.amount || 0);
+            if (!isNaN(amt)) {
+                if (t.bank) byBank[t.bank] = (byBank[t.bank] || 0) + amt;
+                if (t.merchant) byMerchant[t.merchant] = (byMerchant[t.merchant] || 0) + amt;
+            }
+            const d = toDate(t);
+            if (d) {
+                const key = d.toISOString().slice(0,10);
+                byDay[key] = (byDay[key] || 0) + amt;
+            }
+        });
+
+        const bankCtx = document.getElementById('bankChart');
+        const merchantCtx = document.getElementById('merchantChart');
+        const dailyCtx = document.getElementById('dailyChart');
+        if (bankChart) bankChart.destroy();
+        if (merchantChart) merchantChart.destroy();
+        if (dailyChart) dailyChart.destroy();
+
+        bankChart = new Chart(bankCtx, {
+            type: 'pie',
+            data: {
+                labels: Object.keys(byBank),
+                datasets: [{ data: Object.values(byBank), backgroundColor: ["#4ade80", "#60a5fa", "#facc15", "#f87171", "#a78bfa", "#34d399", "#fb7185"] }]
+            },
+            options: { plugins: { legend: { position: 'bottom' } } }
+        });
+
+        const top5 = Object.entries(byMerchant).sort((a,b)=>b[1]-a[1]).slice(0,5);
+        merchantChart = new Chart(merchantCtx, {
+            type: 'bar',
+            data: { labels: top5.map(m=>m[0]), datasets: [{ data: top5.map(m=>m[1]), backgroundColor: '#60a5fa' }] },
+            options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+        });
+
+        const dayLabels = Object.keys(byDay).sort();
+        dailyChart = new Chart(dailyCtx, {
+            type: 'line',
+            data: { labels: dayLabels, datasets: [{ label: 'Spend', data: dayLabels.map(d=>byDay[d]), borderColor: '#34d399', backgroundColor: 'rgba(52,211,153,0.2)', tension: 0.3, fill: true }] },
+            options: { plugins: { legend: { display: false } } }
+        });
+    }
+
+    function formatINR(n) { return INR.format(Math.round(n || 0)); }
+
+    const applyFilters = debounce(function applyFiltersImpl() {
+        const q = (searchEl.value || '').toLowerCase();
+        const fType = typeEl.value;
+        const fBank = bankEl.value;
+        const fMerchant = merchantEl.value;
+        const minAmt = parseFloat(minAmtEl.value);
+        const maxAmt = parseFloat(maxAmtEl.value);
+        const start = startEl.value ? new Date(startEl.value) : null;
+        const end = endEl.value ? new Date(endEl.value + 'T23:59:59') : null;
+
+        const data = transactions.filter(t => {
+            const amt = Number(t.amount);
+            const safeAmt = isNaN(amt) ? 0 : amt;
+            if (fType && t.transaction_type !== fType) return false;
+            if (fBank && t.bank !== fBank) return false;
+            if (fMerchant && t.merchant !== fMerchant) return false;
+            if (!isNaN(minAmt) && !(safeAmt >= minAmt)) return false;
+            if (!isNaN(maxAmt) && !(safeAmt <= maxAmt)) return false;
+            const d = toDate(t);
+            if (start && (!d || d < start)) return false;
+            if (end && (!d || d > end)) return false;
+            if (q) {
+                const hay = `${t.merchant||''} ${t.bank||''} ${t.transaction_type||''} ${t.date_received||''}`.toLowerCase();
+                if (!hay.includes(q)) return false;
+            }
+            return true;
+        });
+
+        // Summary
+        const totalSpend = data.reduce((sum, t) => sum + (isNaN(Number(t.amount))?0:Number(t.amount)), 0);
+        document.getElementById('totalSpend').textContent = formatINR(totalSpend);
+        document.getElementById('totalTx').textContent = data.length;
+        const merchantSpend = {};
+        data.forEach(t => { if (t.merchant) merchantSpend[t.merchant] = (merchantSpend[t.merchant] || 0) + (isNaN(Number(t.amount))?0:Number(t.amount)); });
+        const top = Object.entries(merchantSpend).sort((a,b)=>b[1]-a[1])[0];
+        document.getElementById('topMerchant').textContent = top ? `${top[0]} • ${formatINR(top[1])}` : '-';
+
+        // Table
+        const tbody = document.querySelector('tbody');
+        tbody.innerHTML = '';
+        data.forEach(t => {
+            tbody.insertAdjacentHTML('beforeend', `
+                <tr>
+                    <td data-label="User">${t.user_name||''}</td>
+                    <td data-label="Bank">${t.bank||''}</td>
+                    <td data-label="Amount">${formatINR(isNaN(Number(t.amount))?0:Number(t.amount))}</td>
+                    <td data-label="Type">${t.transaction_type||''}</td>
+                    <td data-label="Merchant">${t.merchant||''}</td>
+                    <td data-label="Date">${t.date_received||''}</td>
+                </tr>
+            `);
+        });
+
+        // Charts
+        renderCharts(data);
+    }, 120);
+
+    // Quick range chips
+    document.querySelectorAll('.chip').forEach(ch => {
+        ch.addEventListener('click', () => {
+            document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+            ch.classList.add('active');
+            const val = ch.dataset.range;
+            if (val === 'all') {
+                startEl.value = '';
+                endEl.value = '';
+            } else {
+                const days = parseInt(val);
+                const end = new Date();
+                const start = new Date();
+                start.setDate(end.getDate() - days + 1);
+                startEl.valueAsDate = start;
+                endEl.valueAsDate = end;
+            }
+            applyFilters();
+        });
     });
-  </script>
-  {% endif %}
+
+    // Reset filters
+    document.getElementById('resetFilters').addEventListener('click', () => {
+        searchEl.value = '';
+        typeEl.value = '';
+        bankEl.value = '';
+        merchantEl.value = '';
+        minAmtEl.value = '';
+        maxAmtEl.value = '';
+        startEl.value = '';
+        endEl.value = '';
+        document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+        applyFilters();
+    });
+
+    // Toggle filters visibility
+    const toggleBtn = document.getElementById('toggleFilters');
+    const filtersPanel = document.getElementById('filtersPanel');
+    toggleBtn.addEventListener('click', () => {
+        const collapsed = filtersPanel.classList.toggle('collapsed');
+        toggleBtn.textContent = collapsed ? 'Show Filters' : 'Hide Filters';
+    });
+
+    // Bind filter events
+    [searchEl, typeEl, bankEl, merchantEl, minAmtEl, maxAmtEl, startEl, endEl].forEach(elm => {
+        elm.addEventListener('input', () => { if (elm===startEl||elm===endEl) { document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active')); } applyFilters(); });
+        elm.addEventListener('change', () => { if (elm===startEl||elm===endEl) { document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active')); } applyFilters(); });
+    });
+
+    // Initial render
+    // Default to 30D
+    const defaultChip = Array.from(document.querySelectorAll('.chip')).find(c=>c.dataset.range==='30');
+    if (defaultChip) { defaultChip.click(); } else { applyFilters(); }
+</script>
+
 </body>
 </html>

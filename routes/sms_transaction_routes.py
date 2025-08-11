@@ -60,9 +60,9 @@ def get_all_transactions(auth_user: str = Depends(basic_auth)):
             cur.execute(
                 """
                 SELECT user_name, sms_id, address, bank, amount, transaction_type, 
-                       merchant, created_at
+                       merchant, created_at, date_received
                 FROM transactions 
-                WHERE user_name = %s 
+                WHERE user_name = %s and transaction_type not in ('null', 'other')
                 ORDER BY created_at DESC;
                 """,
                 (auth_user,),
@@ -70,15 +70,14 @@ def get_all_transactions(auth_user: str = Depends(basic_auth)):
             rows = cur.fetchall()
             transactions = []
             for row in rows:
+                date_object = datetime.datetime.fromtimestamp(row[8] / 1000)
                 transactions.append({
                     "user_name": row[0],
-                    "sms_id": row[1],
-                    "address": row[2],
                     "bank": row[3],
                     "amount": float(row[4]) if row[4] else None,
                     "transaction_type": row[5],
                     "merchant": row[6],
-                    "created_at": row[7].isoformat() if row[7] else None,
+                    "date_received": date_object.strftime("%Y-%m-%d %H:%M:%S")
                 })
         return {"transactions": transactions, "count": len(transactions)}
     except Exception as e:
