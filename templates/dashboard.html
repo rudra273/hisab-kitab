@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Transaction Insights</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 <style>
     * {
         box-sizing: border-box;
@@ -67,6 +68,9 @@
         cursor: pointer;
         transition: all 0.2s ease;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+        gap: 8px;
     }
     
     .btn:hover {
@@ -131,6 +135,9 @@
         font-weight: 600;
         color: #374151;
         margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
     }
     
     .field input, .field select {
@@ -238,6 +245,10 @@
         color: #6b7280;
         font-weight: 500;
         margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
     }
     
     .card-value {
@@ -294,6 +305,9 @@
         font-weight: 600;
         color: #1f2937;
         margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
     }
 
     /* Make canvas fill the fixed-height container */
@@ -332,6 +346,9 @@
         font-weight: 600;
         color: #1f2937;
         margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
     }
     
     table {
@@ -372,6 +389,23 @@
         font-weight: 500;
         background: #e0e7ff;
         color: #3730a3;
+    }
+    
+    /* Icon styles */
+    .icon {
+        width: 16px;
+        height: 16px;
+        stroke-width: 2;
+    }
+    
+    .icon-sm {
+        width: 14px;
+        height: 14px;
+    }
+    
+    .icon-lg {
+        width: 20px;
+        height: 20px;
     }
     
     /* Mobile Responsive Table */
@@ -450,52 +484,82 @@
     </div>
 
     <div class="toolbar">
-        <button id="toggleFilters" class="btn">🔍 Hide Filters</button>
-        <button id="resetFilters" class="btn secondary">↻ Reset All</button>
+        <button id="toggleFilters" class="btn">
+            <i data-lucide="search" class="icon"></i>
+            Hide Filters
+        </button>
+        <button id="resetFilters" class="btn secondary">
+            <i data-lucide="rotate-ccw" class="icon"></i>
+            Reset All
+        </button>
     </div>
 
     <!-- Enhanced Filters -->
     <div id="filtersPanel" class="filters">
         <div class="filter-grid">
             <div class="field">
-                <label for="search">🔍 Search</label>
+                <label for="search">
+                    <i data-lucide="search" class="icon icon-sm"></i>
+                    Search
+                </label>
                 <input id="search" type="text" placeholder="Search merchant, bank..." />
             </div>
             <div class="field">
-                <label for="type">📊 Transaction Type</label>
+                <label for="type">
+                    <i data-lucide="bar-chart-3" class="icon icon-sm"></i>
+                    Transaction Type
+                </label>
                 <select id="type">
                     <option value="">All Types</option>
                 </select>
             </div>
             <div class="field">
-                <label for="bank">🏦 Bank</label>
+                <label for="bank">
+                    <i data-lucide="building-2" class="icon icon-sm"></i>
+                    Bank
+                </label>
                 <select id="bank">
                     <option value="">All Banks</option>
                 </select>
             </div>
             <div class="field">
-                <label for="merchant">🏪 Merchant</label>
+                <label for="merchant">
+                    <i data-lucide="store" class="icon icon-sm"></i>
+                    Merchant
+                </label>
                 <select id="merchant">
                     <option value="">All Merchants</option>
                 </select>
             </div>
             <div class="field">
-                <label for="minAmt">💰 Min Amount</label>
+                <label for="minAmt">
+                    <i data-lucide="indian-rupee" class="icon icon-sm"></i>
+                    Min Amount
+                </label>
                 <input id="minAmt" type="number" inputmode="decimal" placeholder="₹ 0" />
             </div>
             <div class="field">
-                <label for="maxAmt">💰 Max Amount</label>
+                <label for="maxAmt">
+                    <i data-lucide="indian-rupee" class="icon icon-sm"></i>
+                    Max Amount
+                </label>
                 <input id="maxAmt" type="number" inputmode="decimal" placeholder="₹ No limit" />
             </div>
             <div class="field">
-                <label>📅 Date Range</label>
+                <label>
+                    <i data-lucide="calendar" class="icon icon-sm"></i>
+                    Date Range
+                </label>
                 <div class="date-range">
                     <input id="startDate" type="date" />
                     <input id="endDate" type="date" />
                 </div>
             </div>
             <div class="field quick-filters">
-                <label>⚡ Quick Filters</label>
+                <label>
+                    <i data-lucide="zap" class="icon icon-sm"></i>
+                    Quick Filters
+                </label>
                 <div class="chips">
                     <span class="chip" data-range="1">Today</span>
                     <span class="chip" data-range="7">Week</span>
@@ -511,22 +575,34 @@
     <!-- Enhanced Summary Cards -->
     <div class="summary">
         <div class="card">
-            <div class="card-label">💸 Total Spend</div>
+            <div class="card-label">
+                <i data-lucide="credit-card" class="icon"></i>
+                Total Spend
+            </div>
             <div class="card-value" id="totalSpend">₹0</div>
             <div class="card-change" id="spendChange"></div>
         </div>
         <div class="card">
-            <div class="card-label">🏆 Top Merchant</div>
+            <div class="card-label">
+                <i data-lucide="trophy" class="icon"></i>
+                Top Merchant
+            </div>
             <div class="card-value" id="topMerchant">-</div>
             <div class="card-change" id="merchantChange"></div>
         </div>
         <div class="card">
-            <div class="card-label">📈 Transactions</div>
+            <div class="card-label">
+                <i data-lucide="trending-up" class="icon"></i>
+                Transactions
+            </div>
             <div class="card-value" id="totalTx">0</div>
             <div class="card-change" id="txChange"></div>
         </div>
         <div class="card">
-            <div class="card-label">📊 Average</div>
+            <div class="card-label">
+                <i data-lucide="calculator" class="icon"></i>
+                Average
+            </div>
             <div class="card-value" id="avgSpend">₹0</div>
             <div class="card-change" id="avgChange"></div>
         </div>
@@ -535,15 +611,24 @@
     <!-- Enhanced Charts -->
     <div class="charts">
         <div class="chart-container">
-            <div class="chart-title">💳 Spending by Bank</div>
+            <div class="chart-title">
+                <i data-lucide="building-2" class="icon"></i>
+                Spending by Bank
+            </div>
             <canvas id="bankChart"></canvas>
         </div>
         <div class="chart-container">
-            <div class="chart-title">🏪 Top 10 Merchants</div>
+            <div class="chart-title">
+                <i data-lucide="store" class="icon"></i>
+                Top 10 Merchants
+            </div>
             <canvas id="merchantChart"></canvas>
         </div>
         <div class="chart-container chart-large">
-            <div class="chart-title">📅 Daily Spending Trend</div>
+            <div class="chart-title">
+                <i data-lucide="calendar" class="icon"></i>
+                Daily Spending Trend
+            </div>
             <canvas id="dailyChart"></canvas>
         </div>
     </div>
@@ -551,17 +636,20 @@
     <!-- Enhanced Table -->
     <div class="table-container">
         <div class="table-header">
-            <h3 class="table-title">Recent Transactions</h3>
+            <h3 class="table-title">
+                <i data-lucide="list" class="icon icon-lg"></i>
+                Recent Transactions
+            </h3>
         </div>
         <table>
             <thead>
                 <tr>
-                    <th>👤 User</th>
-                    <th>🏦 Bank</th>
-                    <th>💰 Amount</th>
-                    <th>📊 Type</th>
-                    <th>🏪 Merchant</th>
-                    <th>📅 Date</th>
+                    <th><i data-lucide="user" class="icon icon-sm" style="display: inline; margin-right: 6px;"></i>User</th>
+                    <th><i data-lucide="building-2" class="icon icon-sm" style="display: inline; margin-right: 6px;"></i>Bank</th>
+                    <th><i data-lucide="indian-rupee" class="icon icon-sm" style="display: inline; margin-right: 6px;"></i>Amount</th>
+                    <th><i data-lucide="bar-chart-3" class="icon icon-sm" style="display: inline; margin-right: 6px;"></i>Type</th>
+                    <th><i data-lucide="store" class="icon icon-sm" style="display: inline; margin-right: 6px;"></i>Merchant</th>
+                    <th><i data-lucide="calendar" class="icon icon-sm" style="display: inline; margin-right: 6px;"></i>Date</th>
                 </tr>
             </thead>
             <tbody id="transactionTable">
@@ -575,6 +663,9 @@
 <script id="tx-data" type="application/json">{{ transactions | tojson | default([], true) }}</script>
 
 <script>
+    // Initialize Lucide icons
+    lucide.createIcons();
+    
     // Transactions provided by server (fallback to empty array)
     const transactions = JSON.parse(document.getElementById('tx-data')?.textContent || '[]');
 
@@ -809,12 +900,12 @@
                 
                 tbody.insertAdjacentHTML('beforeend', `
                     <tr>
-                        <td data-label="👤 User">${t.user_name||'-'}</td>
-                        <td data-label="🏦 Bank">${t.bank||'-'}</td>
-                        <td data-label="💰 Amount" class="amount">${formatINR(isNaN(Number(t.amount))?0:Number(t.amount))}</td>
-                        <td data-label="📊 Type"><span class="type-badge">${t.transaction_type||'-'}</span></td>
-                        <td data-label="🏪 Merchant">${t.merchant||'-'}</td>
-                        <td data-label="📅 Date">${formattedDate}</td>
+                        <td data-label="User">${t.user_name||'-'}</td>
+                        <td data-label="Bank">${t.bank||'-'}</td>
+                        <td data-label="Amount" class="amount">${formatINR(isNaN(Number(t.amount))?0:Number(t.amount))}</td>
+                        <td data-label="Type"><span class="type-badge">${t.transaction_type||'-'}</span></td>
+                        <td data-label="Merchant">${t.merchant||'-'}</td>
+                        <td data-label="Date">${formattedDate}</td>
                     </tr>
                 `);
             });
@@ -872,7 +963,19 @@
     const filtersPanel = document.getElementById('filtersPanel');
     toggleBtn.addEventListener('click', () => {
         const collapsed = filtersPanel.classList.toggle('collapsed');
-        toggleBtn.textContent = collapsed ? '🔍 Show Filters' : '🔍 Hide Filters';
+        const icon = toggleBtn.querySelector('i');
+        const text = toggleBtn.childNodes[1];
+        
+        if (collapsed) {
+            icon.setAttribute('data-lucide', 'search');
+            text.textContent = ' Show Filters';
+        } else {
+            icon.setAttribute('data-lucide', 'search');
+            text.textContent = ' Hide Filters';
+        }
+        
+        // Reinitialize icons
+        lucide.createIcons();
     });
 
     // Bind filter events
