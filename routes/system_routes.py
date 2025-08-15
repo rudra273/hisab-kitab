@@ -61,7 +61,7 @@ def sync_sms_messages(payload: SmsSyncRequest):
         if conn:
             conn.close()
 
-@system_router.post("/convert", summary="Convert SMS Messages to Transactions", status_code=status.HTTP_200_OK)
+@system_router.api_route("/convert", methods=["GET", "POST"], summary="Convert SMS Messages to Transactions", status_code=status.HTTP_200_OK)
 def convert_sms_to_transactions(_: str = Depends(basic_auth)):
     """
     Admin API endpoint to convert all unprocessed SMS messages to transaction data.

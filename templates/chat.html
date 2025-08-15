@@ -33,21 +33,89 @@
             padding: 0;
         }
 
+        html {
+            height: 100%;
+        }
+
         body {
             font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: var(--bg-gray);
             color: var(--text-primary);
             line-height: 1.6;
             font-size: 14px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            height: 100dvh;
+        }
+
+        /* Navigation Bar */
+        .main-nav {
+            background: transparent;
+            backdrop-filter: none;
+            border-bottom: none;
+            padding: 16px 0;
+            flex-shrink: 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            width: 100%;
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-brand {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        .main-nav ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            gap: 16px;
+        }
+
+        .main-nav ul li a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 15px;
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+
+        .main-nav ul li a:hover {
+            background: var(--border-light);
+            color: var(--text-primary);
+        }
+
+        .main-nav ul li a.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: var(--shadow-sm);
         }
 
         .container {
             max-width: 800px;
             margin: 0 auto;
-            padding: 20px;
-            min-height: 100vh;
+            padding: 0 20px;
             display: flex;
             flex-direction: column;
+            flex-grow: 1;
+            min-height: 0;
+            width: 100%;
         }
 
         .header {
@@ -58,6 +126,8 @@
             border-bottom: none;
             position: relative;
             overflow: hidden;
+            flex-shrink: 0;
+            margin-top: 20px;
         }
 
         .header::before {
@@ -88,7 +158,7 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            min-height: 500px;
+            overflow: hidden;
         }
 
         .chat-box {
@@ -99,8 +169,6 @@
             display: flex;
             flex-direction: column;
             gap: 16px;
-            min-height: 400px;
-            max-height: 70vh;
         }
 
         .chat-box::-webkit-scrollbar {
@@ -221,6 +289,8 @@
             border-radius: 0 0 16px 16px;
             padding: 20px;
             position: relative;
+            flex-shrink: 0;
+            margin-bottom: 20px;
         }
 
         .input-form {
@@ -321,8 +391,6 @@
             40% { transform: scale(1); opacity: 1; }
         }
 
-        /* --- START: MODIFIED STYLES --- */
-
         /* Empty state and examples */
         .empty-state {
             display: flex;
@@ -371,34 +439,32 @@
             box-shadow: var(--shadow-sm);
         }
 
-        /* --- END: MODIFIED STYLES --- */
-
         /* Mobile responsiveness */
         @media (max-width: 768px) {
             .container {
-                padding: 12px;
-                margin: 0;
-                min-height: 100vh;
+                padding: 0 12px;
+            }
+             .nav-container {
+                padding: 0 12px;
             }
 
             .header {
-                padding: 20px;
+                padding: 16px 20px;
                 border-radius: 12px 12px 0 0;
             }
 
             .header h1 {
-                font-size: 20px;
+                font-size: 18px;
             }
 
             .chat-box {
                 padding: 16px;
-                max-height: 60vh;
-                min-height: 350px;
             }
 
             .bubble {
                 max-width: 85%;
                 font-size: 14px;
+                padding: 10px 14px;
             }
 
             .input-container {
@@ -407,37 +473,46 @@
             }
 
             .input-form {
-                gap: 8px;
+                gap: 10px;
             }
 
             .send-button {
-                padding: 14px 16px;
-                font-size: 13px;
+                width: 44px;
+                height: 44px;
+                padding: 12px;
+            }
+
+            input[type="text"] {
+                padding: 12px 14px;
+                font-size: 16px;
             }
         }
 
         @media (max-width: 480px) {
             .container {
-                padding: 8px;
+                padding: 0 8px;
+            }
+            .nav-container {
+                padding: 0 8px;
             }
 
             .header {
-                padding: 16px;
+                padding: 12px 16px;
             }
 
             .header h1 {
-                font-size: 18px;
+                font-size: 16px;
                 gap: 8px;
             }
 
             .chat-box {
                 padding: 12px;
-                min-height: 300px;
+                gap: 12px;
             }
 
             .bubble {
                 max-width: 90%;
-                padding: 10px 14px;
+                padding: 8px 12px;
                 font-size: 13px;
             }
 
@@ -445,19 +520,90 @@
                 padding: 12px;
             }
 
+            .input-form {
+                gap: 8px;
+            }
+
             input[type="text"] {
-                padding: 12px 14px;
-                font-size: 16px; /* Prevents zoom on iOS */
+                padding: 10px 12px;
+                font-size: 16px;
+                border-radius: 10px;
             }
 
             .send-button {
-                padding: 12px 14px;
+                width: 40px;
+                height: 40px;
+                padding: 10px;
+                border-radius: 10px;
+            }
+
+            .example-prompts {
+                max-width: 100%;
+            }
+
+            .example-prompt-item {
+                font-size: 12px;
+                padding: 8px 12px;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .container {
+                padding: 0 4px;
+            }
+            .nav-container {
+                padding: 0 4px;
+            }
+
+            .header {
+                padding: 10px 12px;
+            }
+
+            .header h1 {
+                font-size: 15px;
+            }
+
+            .chat-box {
+                padding: 8px;
+            }
+
+            .input-container {
+                padding: 8px;
+            }
+        }
+
+        @media (max-height: 500px) and (orientation: landscape) {
+            .header {
+                padding: 10px 16px;
+            }
+
+            .header h1 {
+                font-size: 16px;
+                margin-bottom: 4px;
+            }
+
+            .chat-box {
+                padding: 12px;
+            }
+
+            .input-container {
+                padding: 12px;
             }
         }
     </style>
 </head>
 
 <body>
+    <nav class="main-nav">
+        <div class="nav-container">
+            <a href="/" class="nav-brand">Hisab-Kitab</a>
+            <ul>
+                <li><a href="/dashboard">Dashboard</a></li>
+                <li><a href="/chat" class="active">Chat</a></li>
+            </ul>
+        </div>
+    </nav>
+
     <div class="container">
         <div class="header">
             <h1>
@@ -475,7 +621,7 @@
                         <div class="example-prompt-item">Show me transactions from last Friday.</div>
                     </div>
                 </div>
-                </div>
+            </div>
         </div>
 
         <div class="input-container">
@@ -634,7 +780,6 @@
             }
         });
 
-        // --- START: NEW JAVASCRIPT ---
         // Make example prompts clickable
         document.querySelectorAll('.example-prompt-item').forEach(item => {
             item.addEventListener('click', () => {
@@ -643,7 +788,6 @@
                 userInput.focus();
             });
         });
-        // --- END: NEW JAVASCRIPT ---
 
     </script>
 </body>

@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -20,10 +21,67 @@
         color: #1f2937;
     }
     
+    /* Navigation Bar */
+    .main-nav {
+        background: transparent;
+        backdrop-filter: none;
+        border-bottom: none;
+        padding: 16px 0;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        width: 100%;
+    }
+
+    .nav-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 0 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .nav-brand {
+        font-size: 20px;
+        font-weight: 700;
+        color: white;
+        text-decoration: none;
+    }
+
+    .main-nav ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        gap: 16px;
+    }
+
+    .main-nav ul li a {
+        color: rgba(255, 255, 255, 0.85);
+        text-decoration: none;
+        font-size: 15px;
+        font-weight: 500;
+        padding: 8px 16px;
+        border-radius: 8px;
+        transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .main-nav ul li a:hover {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+    }
+
+    .main-nav ul li a.active {
+        background: rgba(255, 255, 255, 0.95);
+        color: #4c51bf;
+        box-shadow: 0 2px 8px -2px rgba(0,0,0,0.1);
+    }
+
     .container {
         max-width: 1400px;
         margin: 0 auto;
-        padding: 16px;
+        padding: 0 16px;
     }
     
     /* Header */
@@ -94,7 +152,6 @@
         box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         border: 1px solid rgba(255, 255, 255, 0.2);
-        /* Ensure inner content doesn't visually overflow rounded corners */
         overflow: hidden;
     }
     
@@ -110,7 +167,6 @@
         display: grid;
         gap: 20px;
         grid-template-columns: 1fr;
-        /* Allow grid items to shrink without causing overflow */
         min-width: 0;
     }
     
@@ -126,7 +182,6 @@
         display: flex;
         flex-direction: column;
         gap: 8px;
-        /* Prevent long content from forcing overflow */
         min-width: 0;
     }
     
@@ -177,7 +232,6 @@
         display: flex;
         gap: 8px;
         flex-wrap: wrap;
-        /* Allow horizontal scroll on very small screens instead of overflow */
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
     }
@@ -289,7 +343,6 @@
         border: 1px solid rgba(255, 255, 255, 0.2);
         box-shadow: 0 8px 32px -12px rgba(0, 0, 0, 0.15);
         transition: all 0.3s ease;
-        /* Prevent infinite growth by fixing height */
         height: 360px;
         box-sizing: border-box;
         position: relative;
@@ -310,14 +363,12 @@
         gap: 8px;
     }
 
-    /* Make canvas fill the fixed-height container */
     .chart-container canvas {
         width: 100% !important;
-        height: calc(100% - 24px) !important; /* account for title margin */
+        height: calc(100% - 24px) !important;
         display: block;
     }
 
-    /* Larger chart container variant */
     .chart-container.chart-large {
         height: 420px;
     }
@@ -477,6 +528,16 @@
 </head>
 <body>
 
+<nav class="main-nav">
+    <div class="nav-container">
+        <a href="/" class="nav-brand">Hisab-Kitab</a>
+        <ul>
+            <li><a href="/dashboard" class="active">Dashboard</a></li>
+            <li><a href="/chat">Chat</a></li>
+        </ul>
+    </div>
+</nav>
+
 <div class="container">
     <div class="header">
         <h1>Transaction Insights</h1>
@@ -494,7 +555,6 @@
         </button>
     </div>
 
-    <!-- Enhanced Filters -->
     <div id="filtersPanel" class="filters">
         <div class="filter-grid">
             <div class="field">
@@ -572,7 +632,6 @@
         </div>
     </div>
 
-    <!-- Enhanced Summary Cards -->
     <div class="summary">
         <div class="card">
             <div class="card-label">
@@ -608,7 +667,6 @@
         </div>
     </div>
 
-    <!-- Enhanced Charts -->
     <div class="charts">
         <div class="chart-container">
             <div class="chart-title">
@@ -633,7 +691,6 @@
         </div>
     </div>
 
-    <!-- Enhanced Table -->
     <div class="table-container">
         <div class="table-header">
             <h3 class="table-title">
@@ -658,8 +715,6 @@
         </table>
     </div>
 </div>
-
-<!-- Server-provided transactions JSON -->
 <script id="tx-data" type="application/json">{{ transactions | tojson | default([], true) }}</script>
 
 <script>
